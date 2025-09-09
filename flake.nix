@@ -12,7 +12,7 @@
       modules = [
         ./configuration.nix
         ./system-packages.nix
-        (if builtins.pathExists /etc/nixos/secret.nix then /etc/nixos/secret.nix else ./secret.nix)
+        /etc/nixos/secret.nix
       ];
     };
   };
