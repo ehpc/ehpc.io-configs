@@ -3,7 +3,9 @@
 {
   imports =
     [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
+      (if builtins.pathExists /etc/nixos/hardware-configuration.nix
+       then /etc/nixos/hardware-configuration.nix
+       else ./hardware-configuration.nix)
     ];
 
   system.stateVersion = "25.05"; # Do not touch
