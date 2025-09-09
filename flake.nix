@@ -15,6 +15,7 @@
         (etc + "/hardware-configuration.nix")
         ./configuration.nix
         (etc + "/secret.nix")
+        ./firewall.nix
         ./system-packages.nix
       ];
     };

@@ -31,4 +31,11 @@
   };
   services.sshd.enable = true;
   services.fail2ban.enable = true;
+
+  # GC
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
 }
