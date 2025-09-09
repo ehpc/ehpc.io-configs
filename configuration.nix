@@ -3,7 +3,7 @@
 {
   imports =
     [ # Include the results of the hardware scan.
-      /etc/nixos/hardware-configuration.nix
+      (secrets + "/hardware-configuration.nix")
     ];
 
   system.stateVersion = "25.05"; # Do not touch

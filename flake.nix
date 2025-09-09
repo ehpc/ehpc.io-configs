@@ -3,6 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    etc.url = "path:/etc/nixos";
+    etc.flake = false;
   };
 
   outputs = { self, nixpkgs }:
@@ -12,7 +14,7 @@
       modules = [
         ./configuration.nix
         ./system-packages.nix
-        /etc/nixos/secret.nix
+        (etc + "/secret.nix")
       ];
     };
   };
