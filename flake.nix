@@ -14,6 +14,7 @@
       modules = [
         ./configuration.nix
         ./secret.nix
+        ./system-packages.nix
       ];
     };
   };
