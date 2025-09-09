@@ -10,7 +10,7 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
   in {
-    nixosConfigurations.nixos = pkgs.nixosSystem {
+    nixosConfigurations.nixos = pkgs.lib.nixosSystem {
       modules = [
         ./configuration.nix
         ./secret.nix
