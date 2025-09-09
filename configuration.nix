@@ -1,11 +1,6 @@
 { config, lib, pkgs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      (secrets + "/hardware-configuration.nix")
-    ];
-
   system.stateVersion = "25.05"; # Do not touch
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
