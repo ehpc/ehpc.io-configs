@@ -6,15 +6,13 @@
   };
 
   outputs = { self, nixpkgs }:
-  let
-    system = "x86_64-linux";
-    pkgs = import nixpkgs { inherit system; };
-  in {
-    nixosConfigurations.nixos = pkgs.lib.nixosSystem {
+  {
+    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
       modules = [
         ./configuration.nix
-        ./secret.nix
         ./system-packages.nix
+        ./secret.nix
       ];
     };
   };
