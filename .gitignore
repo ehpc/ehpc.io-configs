@@ -6,3 +6,4 @@ result-*
 .direnv
 
 secret.nix
+hardware-configuration.nix
