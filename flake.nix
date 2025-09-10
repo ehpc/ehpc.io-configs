@@ -7,17 +7,18 @@
     etc.flake = false;
   };
 
-  outputs = { self, nixpkgs, etc, ... }:
-  {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        (etc + "/hardware-configuration.nix")
-        ./configuration.nix
-        (etc + "/secret.nix")
-        ./firewall.nix
-        ./system-packages.nix
-      ];
+  outputs =
+    { nixpkgs, etc, ... }:
+    {
+      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          (etc + ./hardware-configuration.nix)
+          ./configuration.nix
+          (etc + "/secret.nix")
+          ./firewall.nix
+          ./system-packages.nix
+        ];
+      };
     };
-  };
 }

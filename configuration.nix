@@ -1,12 +1,15 @@
-{ config, lib, pkgs, ... }:
+{ ... }:
 
 {
   system.stateVersion = "25.05"; # Do not touch
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Time
   time.timeZone = "Europe/Amsterdam";
-  
+
   # Grub
   boot.loader.grub.enable = true;
   boot.loader.grub.device = "/dev/vda";
