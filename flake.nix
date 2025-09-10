@@ -13,7 +13,7 @@
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          (etc + "./hardware-configuration.nix")
+          (etc + "/hardware-configuration.nix")
           ./configuration.nix
           (etc + "/secret.nix")
           ./firewall.nix
