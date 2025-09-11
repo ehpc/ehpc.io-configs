@@ -21,7 +21,11 @@
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
       }
 
-      log
+      log {
+        level INFO
+        output stderr
+        format console
+      }
     '';
   };
 }
