@@ -1,10 +1,12 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   home.username = "ehpc";
   home.homeDirectory = "/home/ehpc";
 
   home.packages = [
+    pkgs.binutils
+    pkgs.git
   ];
 
   home.stateVersion = "25.05";
