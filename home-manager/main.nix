@@ -7,6 +7,7 @@
   home.packages = [
     pkgs.binutils
     pkgs.git
+    pkgs.btop
   ];
 
   home.stateVersion = "25.05";
