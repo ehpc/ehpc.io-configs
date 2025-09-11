@@ -7,6 +7,8 @@
       80
       443
     ];
-    allowedUDPPorts = [ ];
+    allowedUDPPorts = [
+      443
+    ];
   };
 }
