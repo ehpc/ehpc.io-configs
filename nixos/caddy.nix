@@ -5,8 +5,7 @@
     virtualHosts.${domain}.extraConfig = ''
       encode zstd gzip
 
-      @caddyhealth path_exact /proxy-health
-      handle @caddyhealth {
+      handle /proxy-health {
         respond "ok" 200
       }
 
