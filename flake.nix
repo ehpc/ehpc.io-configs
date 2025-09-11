@@ -28,13 +28,16 @@
         system = "x86_64-linux";
         modules = [
           (etc + "/hardware-configuration.nix")
-          ./nixos/configuration.nix
+          ./nixos/main.nix
           (etc + "/secret.nix")
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+
+            home-manager.users.ehpc = import ./home-manager/main.nix;
+          }
         ];
-      };
-      homeConfigurations."ehpc" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        modules = [ ./home.nix ];
       };
     };
 }
