@@ -5,7 +5,8 @@
     virtualHosts.${domain}.extraConfig = ''
       encode zstd gzip
 
-      handle_path /proxy-health {
+      @caddyhealth path_exact /proxy-health
+      handle @caddyhealth {
         respond "ok" 200
       }
 
@@ -19,6 +20,8 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
       }
+
+      log
     '';
   };
 }
