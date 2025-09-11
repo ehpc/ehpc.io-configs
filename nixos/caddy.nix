@@ -5,10 +5,13 @@
     virtualHosts.${domain}.extraConfig = ''
       encode zstd gzip
 
-      @health path /proxy-health
-      respond @health "ok" 200
+      handle_path /proxy-health {
+        respond "ok" 200
+      }
 
-      reverse_proxy 127.0.0.1:8080
+      handle {
+        reverse_proxy 127.0.0.1:8080
+      }
 
       header {
         -Server
