@@ -26,6 +26,9 @@
     {
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = {
+          domain = "ehpc.io";
+        };
         modules = [
           (etc + "/hardware-configuration.nix")
           ./nixos/main.nix

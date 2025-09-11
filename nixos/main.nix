@@ -23,5 +23,7 @@
     ./users.nix
     ./firewall.nix
     ./system-packages.nix
+    ./containers.nix
+    ./caddy.nix
   ];
 }

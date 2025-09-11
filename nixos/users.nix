@@ -5,6 +5,7 @@
     home = "/home/ehpc";
     extraGroups = [
       "wheel"
+      "podman"
     ];
   };
 }
