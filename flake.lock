@@ -3,8 +3,8 @@
     "etc": {
       "flake": false,
       "locked": {
-        "lastModified": 1757443086,
-        "narHash": "sha256-lk6kcF5m2hwaNzaZLPy4J+4lme0BYBjXZkGXmOTEi4w=",
+        "lastModified": 1757618454,
+        "narHash": "sha256-qi+ZAznNdKK0Pg8ESQdNXrtaSNjM6XIrR5Fc0qOOz4c=",
         "path": "/etc/nixos",
         "type": "path"
       },
