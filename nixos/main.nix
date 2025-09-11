@@ -10,10 +10,15 @@
 
   time.timeZone = "Europe/Amsterdam";
 
+  nix.settings = {
+    max-jobs = 1;
+    auto-optimise-store = true;
+  };
+
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 30d";
+    options = "--delete-older-than 14d";
   };
 
   imports = [
