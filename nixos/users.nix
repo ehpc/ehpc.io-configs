@@ -7,8 +7,8 @@
       "wheel"
       "podman"
     ];
-    openssh.authorizedKeys.keyFiles = [
-      config.sops.secrets."ehpc-public-key".path
+    openssh.authorizedKeys.keys = [
+       (builtins.readFile config.sops.secrets."ehpc-public-key".path)
     ];
   };
 }
