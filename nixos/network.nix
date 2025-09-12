@@ -1,9 +1,10 @@
 { config, ... }:
 {
+  networking.useNetworkd = true;
   networking.useDHCP = false;
   systemd.network.enable = true;
 
-  sops.templates."10-wan".content = ''
+  sops.templates."10-wan.network".content = ''
     [Match]
     Name=ens3
 
@@ -17,7 +18,7 @@
     GatewayOnLink=true
   '';
 
-  environment.etc."systemd/network/10-wan.network".source = config.sops.templates."10-wan".path;
+  environment.etc."systemd/network/10-wan.network".source = config.sops.templates."10-wan.network".path;
 
   systemd.services.systemd-networkd.wants = [
     "sops-nix.service"
