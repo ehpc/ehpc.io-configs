@@ -22,6 +22,7 @@
   };
 
   imports = [
+    ./sops.nix
     ./boot.nix
     ./network.nix
     ./ssh.nix
