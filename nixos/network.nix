@@ -25,8 +25,6 @@
 
   environment.etc."systemd/network/10-wan.network" = {
     source = config.sops.templates."10-wan.network".path;
-    mode = "0644";
-    force  = true;
   };
 
   systemd.services.systemd-networkd.wants = [
