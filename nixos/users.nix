@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 {
   users.users.ehpc = {
     isNormalUser = true;
@@ -6,6 +6,9 @@
     extraGroups = [
       "wheel"
       "podman"
+    ];
+    openssh.authorizedKeys.keyFiles = [
+      config.sops.secrets."ehpc-public-key".path
     ];
   };
 }

@@ -36,7 +36,6 @@
           domain = "ehpc.io";
         };
         modules = [
-          (etc + "/hardware-configuration.nix")
           ./nixos/main.nix
           (etc + "/secret.nix")
           home-manager.nixosModules.home-manager

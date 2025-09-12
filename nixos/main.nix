@@ -22,6 +22,7 @@
   };
 
   imports = [
+    ./hardware-configuration.nix
     ./sops.nix
     ./boot.nix
     ./network.nix
