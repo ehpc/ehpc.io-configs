@@ -13,18 +13,11 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # /etc as a flake input
-    etc = {
-      url = "path:/etc/nixos";
-      flake = false;
-    };
   };
 
   outputs =
     {
       nixpkgs,
-      etc,
       home-manager,
       sops-nix,
       ...
@@ -37,7 +30,6 @@
         };
         modules = [
           ./nixos/main.nix
-          (etc + "/secret.nix")
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
