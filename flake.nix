@@ -9,6 +9,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # /etc as a flake input
     etc = {
       url = "path:/etc/nixos";
@@ -21,6 +26,7 @@
       nixpkgs,
       etc,
       home-manager,
+      sops-nix,
       ...
     }:
     {
@@ -40,6 +46,7 @@
 
             home-manager.users.ehpc = import ./home-manager/main.nix;
           }
+          sops-nix.nixosModules.sops
         ];
       };
     };
