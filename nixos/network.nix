@@ -23,9 +23,8 @@
     mode = "0644";
   };
 
-  environment.etc."systemd/network/10-wan.network" = {
-    source = config.sops.templates."10-wan.network".path;
-  };
+  environment.etc."systemd/network/10-wan.network".source =
+    config.sops.templates."10-wan.network".path;
 
   systemd.services.systemd-networkd.wants = [
     "sops-nix.service"
