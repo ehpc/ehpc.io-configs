@@ -6,5 +6,6 @@
     curl
     wget
     age
+    sops
   ];
 }
