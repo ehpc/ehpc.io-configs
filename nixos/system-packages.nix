@@ -5,5 +5,6 @@
     htop
     curl
     wget
+    age
   ];
 }

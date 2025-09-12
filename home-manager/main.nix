@@ -4,10 +4,10 @@
   home.username = "ehpc";
   home.homeDirectory = "/home/ehpc";
 
-  home.packages = [
-    pkgs.binutils
-    pkgs.git
-    pkgs.btop
+  home.packages = with pkgs; [
+    binutils
+    git
+    btop
   ];
 
   home.stateVersion = "25.05";
