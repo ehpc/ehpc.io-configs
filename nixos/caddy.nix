@@ -9,6 +9,11 @@
         respond "ok" 200
       }
 
+      handle_path /files/* {
+        root * /srv/files
+        file_server
+      }
+
       handle {
         reverse_proxy 127.0.0.1:8080
       }
@@ -26,5 +31,12 @@
         format console
       }
     '';
+  };
+  systemd.tmpfiles.settings."srv-files" = {
+    "/srv/files".d = {
+      mode = "0755";
+      user = "caddy";
+      group = "caddy";
+    };
   };
 }
