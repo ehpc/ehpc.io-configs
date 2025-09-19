@@ -11,7 +11,7 @@
 
       handle_path /files/* {
         root * /srv/files
-        file_server
+        file_server browse
       }
 
       handle {
