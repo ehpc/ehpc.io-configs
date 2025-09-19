@@ -3,7 +3,12 @@
   services.caddy = {
     enable = true;
     virtualHosts.${domain}.extraConfig = ''
-      encode zstd gzip
+      @not-archives {
+        not {
+          path *.zip *.tar *.tar.gz *.tgz *.gz *.xz *.zst *.bz2 *.7z *.rar *.iso
+        }
+      }
+      encode @not-archives zstd gzip
 
       handle /proxy-health {
         respond "ok" 200
@@ -12,7 +17,6 @@
       handle_path /files/* {
         root * /srv/files
         file_server browse
-        encode off
       }
 
       handle {
