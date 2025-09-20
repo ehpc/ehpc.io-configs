@@ -1,41 +1,14 @@
-{ domain, ... }:
+{ domain, pkgs, ... }:
+let
+  caddyfile = pkgs.replaceVars ../web/Caddyfile {
+    DOMAIN = domain;
+  };
+in
 {
+  environment.etc."caddy/Caddyfile".source = caddyfile;
   services.caddy = {
     enable = true;
-    virtualHosts.${domain}.extraConfig = ''
-      @not-archives {
-        not {
-          path *.zip *.tar *.tar.gz *.tgz *.gz *.xz *.zst *.bz2 *.7z *.rar *.iso
-        }
-      }
-      encode @not-archives zstd gzip
-
-      handle /proxy-health {
-        respond "ok" 200
-      }
-
-      handle_path /files/* {
-        root * /srv/files
-        file_server browse
-      }
-
-      handle {
-        reverse_proxy 127.0.0.1:8080
-      }
-
-      header {
-        -Server
-        X-Content-Type-Options "nosniff"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-      }
-
-      log {
-        level INFO
-        output stderr
-        format console
-      }
-    '';
+    configFile = "/etc/caddy/Caddyfile";
   };
   systemd.tmpfiles.settings."srv-files" = {
     "/srv/files".d = {
