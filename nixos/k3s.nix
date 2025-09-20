@@ -6,7 +6,7 @@
   services.k3s.extraFlags = toString [
     "--disable=traefik"
     "--write-kubeconfig-group=kube"
-    "--write-kubeconfig-mode=640"
+    "--write-kubeconfig-mode=644"
   ];
   services.k3s.manifests.ehpc-io.source = ../web/ehpc-io-deployment.yaml;
 }
