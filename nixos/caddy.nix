@@ -5,11 +5,9 @@ let
   };
 in
 {
-  environment.etc."caddy/caddy_config".enable = lib.mkForce false;
-  environment.etc."caddy/Caddyfile".source = caddyfile;
+  environment.etc."caddy/caddy_config".source = caddyfile;
   services.caddy = {
     enable = true;
-    configFile = "/etc/caddy/Caddyfile";
   };
   systemd.tmpfiles.settings."srv-files" = {
     "/srv/files".d = {
