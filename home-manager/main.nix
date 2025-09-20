@@ -19,4 +19,6 @@
     userName = "ehpc";
     userEmail = "ehpc@ehpc.io";
   };
+
+  home.sessionVariables.KUBECONFIG = "/etc/rancher/k3s/k3s.yaml";
 }
