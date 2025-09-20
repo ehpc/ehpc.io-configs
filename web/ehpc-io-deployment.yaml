@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ehpc-io-deployment
+  labels:
+    app: ehpc-io
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ehpc-io
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: ehpc-io
+    spec:
+      containers:
+        - name: main-site
+          image: ghcr.io/ehpc/ehpc.io:prod
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              hostPort: 8080
+          livenessProbe:
+            httpGet: { path: "/main-health", port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
