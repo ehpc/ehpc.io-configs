@@ -6,6 +6,7 @@
     extraGroups = [
       "wheel"
       "podman"
+      "kube"
     ];
   };
   environment.etc."ssh/authorized_keys.d/ehpc" = {
