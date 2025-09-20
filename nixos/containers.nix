@@ -18,7 +18,7 @@
     ];
   };
 
-  environment.etc."podman/ehpc.io.yaml".source = ../web/ehpc-io.yaml;
+  environment.etc."podman/ehpc.io.yaml".source = ../web/ehpc.io.yaml;
 
   systemd.services."podman-kube@ehpc.io.yaml".enable = true;
 }
