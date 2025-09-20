@@ -1,10 +1,11 @@
-{ domain, pkgs, ... }:
+{ domain, pkgs, lib, ... }:
 let
   caddyfile = pkgs.replaceVars ../web/Caddyfile {
     DOMAIN = domain;
   };
 in
 {
+  environment.etc."caddy/caddy_config".enable = lib.mkForce false;
   environment.etc."caddy/Caddyfile".source = caddyfile;
   services.caddy = {
     enable = true;
