@@ -10,12 +10,8 @@
   systemd.timers."podman-auto-update".timerConfig.OnCalendar = "*:0/15";
 
   systemd.services."podman-kube@".serviceConfig = {
-    ExecStart = lib.mkForce [
-      "/run/current-system/sw/bin/podman kube play --replace --service-container=true /etc/podman/%i.yaml"
-    ];
-    ExecStop = lib.mkForce [
-      "/run/current-system/sw/bin/podman kube down /etc/podman/%i.yaml"
-    ];
+    ExecStart = "/run/current-system/sw/bin/podman kube play --replace --service-container=true /etc/podman/%i.yaml";
+    ExecStop = "/run/current-system/sw/bin/podman kube down /etc/podman/%i.yaml";
   };
 
   environment.etc."podman/ehpc.io.yaml".source = ../web/ehpc.io.yaml;
