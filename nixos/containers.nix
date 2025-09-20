@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ ... }:
 {
   virtualisation.containers.enable = true;
   virtualisation = {
