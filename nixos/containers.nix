@@ -10,10 +10,12 @@
   systemd.timers."podman-auto-update".timerConfig.OnCalendar = "*:0/15";
 
   systemd.services."podman-kube@".serviceConfig = {
-    ExecStart = lib.mkForce [
+    ExecStart = [
+      ""
       "/run/current-system/sw/bin/podman kube play --replace --service-container=true /etc/podman/%I.yaml"
     ];
-    ExecStop = lib.mkForce [
+    ExecStop = [
+      ""
       "/run/current-system/sw/bin/podman kube down /etc/podman/%I.yaml"
     ];
   };
