@@ -5,7 +5,7 @@ let
   };
 in
 {
-  environment.etc."caddy/caddy_config".source = caddyfile;
+  environment.etc."caddy/caddy_config".source = lib.mkForce caddyfile;
   services.caddy = {
     enable = true;
   };
