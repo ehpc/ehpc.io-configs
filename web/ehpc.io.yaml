@@ -3,10 +3,10 @@ kind: Pod
 metadata:
   labels:
     app: ehpc-io-pod
+    io.containers.autoupdate: "registry"
   name: ehpc-io-pod
   annotations:
     io.containers.sdnotify: "container"
-    io.containers.autoupdate: "registry"
 spec:
   containers:
     - image: ghcr.io/ehpc/ehpc.io:prod
