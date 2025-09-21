@@ -7,7 +7,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: ehpc-io-main-middleware@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: headers-middleware@kubernetescrd,compress-middleware@kubernetescrd
 spec:
   tls:
     - hosts: ["ehpc.io"]

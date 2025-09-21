@@ -1,0 +1,15 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: headers-middleware
+  namespace: ehpc-io
+spec:
+  headers:
+    contentTypeNosniff: true
+    referrerPolicy: "strict-origin-when-cross-origin"
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+    forceSTSHeader: true
+    customResponseHeaders:
+      Server: ""
