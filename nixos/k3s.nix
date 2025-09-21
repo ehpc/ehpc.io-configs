@@ -12,13 +12,10 @@
       cert-manager = {
         enable = true;
         name = "cert-manager";
-        namespace = "cert-manager";
+        targetNamespace = "cert-manager";
         createNamespace = true;
         repo = "oci://quay.io/jetstack/charts/cert-manager";
         version = "v1.18.2";
-        values = {
-          crds.enabled = true;
-        };
       };
     };
     manifests.ehpc-io-letsencrypt.source = ../k8s/ehpc-io-letsencrypt.yaml;
