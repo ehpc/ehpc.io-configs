@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ehpc-io-deployment
+  name: main-page-deployment
   namespace: ehpc-io
   labels:
-    app: ehpc-io
+    app: main-page
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ehpc-io
+      app: main-page
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,10 +18,10 @@ spec:
   template:
     metadata:
       labels:
-        app: ehpc-io
+        app: main-page
     spec:
       containers:
-        - name: ehpc-io
+        - name: main-page
           image: ghcr.io/ehpc/ehpc.io:prod
           imagePullPolicy: Always
           ports:

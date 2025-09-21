@@ -1,4 +1,28 @@
 { ... }:
+let
+  manifestsList = [
+    ../k8s/ehpc-io-letsencrypt.yaml
+    ../k8s/ehpc-io-namespace.yaml
+    ../k8s/ehpc-io-dummy-service.yaml
+    ../k8s/ehpc-io-https-redirect-middleware.yaml
+    ../k8s/ehpc-io-http-ingress.yaml
+    ../k8s/ehpc-io-headers-middleware.yaml
+    ../k8s/ehpc-io-compress-middleware.yaml
+    ../k8s/ehpc-io-https-ingress.yaml
+    ../k8s/ehpc-io-main-page-service.yaml
+    ../k8s/ehpc-io-main-page-deployment.yaml
+    ../k8s/ehpc-io-main-page-hpa.yaml
+  ];
+
+  manifestsAttrs = builtins.listToAttrs (
+    map (p: {
+      name = lib.removeSuffix ".yaml" (lib.baseNameOf (toString p));
+      value = {
+        source = p;
+      };
+    }) manifestsList
+  );
+in
 {
   users.groups.kube = { };
   systemd.services.k3s.serviceConfig.LimitNOFILE = 1048576;
@@ -23,18 +47,7 @@
         };
       };
     };
-    manifests.ehpc-io-letsencrypt.source = ../k8s/ehpc-io-letsencrypt.yaml;
-    manifests.ehpc-io-namespace.source = ../k8s/ehpc-io-namespace.yaml;
 
-    manifests.ehpc-io-dummy-service.source = ../k8s/ehpc-io-dummy-service.yaml;
-    manifests.ehpc-io-https-redirect-middleware.source = ../k8s/ehpc-io-https-redirect-middleware.yaml;
-    manifests.ehpc-io-http-ingress.source = ../k8s/ehpc-io-http-ingress.yaml;
-
-    manifests.ehpc-io-headers-middleware.source = ../k8s/ehpc-io-headers-middleware.yaml;
-    manifests.ehpc-io-compress-middleware.source = ../k8s/ehpc-io-compress-middleware.yaml;
-    manifests.ehpc-io-ingress.source = ../k8s/ehpc-io-ingress.yaml;
-    manifests.ehpc-io-service.source = ../k8s/ehpc-io-service.yaml;
-    manifests.ehpc-io-deployment.source = ../k8s/ehpc-io-deployment.yaml;
-    manifests.ehpc-io-hpa.source = ../k8s/ehpc-io-hpa.yaml;
+    services.k3s.manifests = manifestsAttrs;
   };
 }

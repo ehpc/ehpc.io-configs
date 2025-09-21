@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ehpc-io
+  name: main-page-service
   namespace: ehpc-io
 spec:
   selector:
-    app: ehpc-io
+    app: main-page
   ports:
     - port: 80
       targetPort: 80

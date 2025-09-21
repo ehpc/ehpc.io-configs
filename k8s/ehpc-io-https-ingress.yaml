@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ehpc-io-ingress
+  name: https-ingress
   namespace: ehpc-io
   annotations:
     kubernetes.io/ingress.class: traefik
@@ -21,6 +21,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ehpc-io
+                name: main-page-service
                 port:
                   number: 80
