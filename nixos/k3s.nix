@@ -16,7 +16,7 @@ let
 
   manifestsAttrs = builtins.listToAttrs (
     map (p: {
-      name = lib.removeSuffix ".yaml" (lib.baseNameOf (toString p));
+      name = lib.removeSuffix ".yaml" (baseNameOf (toString p));
       value = {
         source = p;
       };
