@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 let
   manifestsList = [
     ../k8s/ehpc-io-letsencrypt.yaml
