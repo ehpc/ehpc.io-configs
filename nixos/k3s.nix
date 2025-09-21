@@ -15,6 +15,7 @@
         targetNamespace = "cert-manager";
         createNamespace = true;
         repo = "https://charts.jetstack.io";
+        hash = "sha256-2t33r3sfDqqhDt15Cu+gvYwrB4MP6/ZZRg2EMhf1s8U=";
         version = "v1.18.2";
         values = {
           installCRDs = true;
