@@ -7,5 +7,6 @@
     wget
     age
     sops
+    jq
   ];
 }
