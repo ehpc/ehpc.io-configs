@@ -25,7 +25,7 @@ spec:
           image: ghcr.io/ehpc/ehpc.io:prod
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 80
           resources:
             requests:
               memory: "64Mi"
