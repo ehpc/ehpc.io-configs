@@ -1,0 +1,28 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: main-middleware
+  namespace: ehpc-io
+spec:
+  headers:
+    contentTypeNosniff: true
+    referrerPolicy: "strict-origin-when-cross-origin"
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+    forceSTSHeader: true
+    customResponseHeaders:
+      Server: ""
+  compress:
+    excludedContentTypes:
+      - application/zip
+      - application/x-zip-compressed
+      - application/x-7z-compressed
+      - application/x-rar-compressed
+      - application/x-bzip2
+      - application/gzip
+      - application/x-gzip
+      - application/x-xz
+      - application/x-tar
+      - application/x-iso9660-image
+      - application/zstd
