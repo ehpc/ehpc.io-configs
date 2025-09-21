@@ -47,7 +47,6 @@ in
         };
       };
     };
-
-    services.k3s.manifests = manifestsAttrs;
+    manifests = manifestsAttrs;
   };
 }
