@@ -25,7 +25,7 @@
     manifests.ehpc-io-letsencrypt.source = ../k8s/ehpc-io-letsencrypt.yaml;
     manifests.ehpc-io-namespace.source = ../k8s/ehpc-io-namespace.yaml;
 
-    manifests.dummy-service.source = ../k8s/dummy-service.yaml;
+    manifests.ehpc-io-dummy-service.source = ../k8s/ehpc-io-dummy-service.yaml;
     manifests.ehpc-io-https-redirect-middleware.source = ../k8s/ehpc-io-https-redirect-middleware.yaml;
     manifests.ehpc-io-http-ingress.source = ../k8s/ehpc-io-http-ingress.yaml;
 
