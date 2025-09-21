@@ -1,6 +1,7 @@
 { ... }:
 {
   users.groups.kube = { };
+  systemd.services.k3s.serviceConfig.LimitNOFILE = 1048576;
   services.k3s = {
     enable = true;
     role = "server";
