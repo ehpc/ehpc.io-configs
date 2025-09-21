@@ -10,10 +10,10 @@
     ];
     autoDeployCharts = {
       cert-manager = {
+        enable = true;
         name = "cert-manager";
         namespace = "cert-manager";
         createNamespace = true;
-        chart = "cert-manager";
         repo = "oci://quay.io/jetstack/charts/cert-manager";
         version = "v1.18.2";
         values = {
