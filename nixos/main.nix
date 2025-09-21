@@ -32,6 +32,5 @@
     ./system-packages.nix
     ./containers.nix
     ./k3s.nix
-    ./caddy.nix
   ];
 }
