@@ -29,7 +29,8 @@
     manifests.ehpc-io-https-redirect-middleware.source = ../k8s/ehpc-io-https-redirect-middleware.yaml;
     manifests.ehpc-io-http-ingress.source = ../k8s/ehpc-io-http-ingress.yaml;
 
-    manifests.ehpc-io-main-middleware.source = ../k8s/ehpc-io-main-middleware.yaml;
+    manifests.ehpc-io-headers-middleware.source = ../k8s/ehpc-io-headers-middleware.yaml;
+    manifests.ehpc-io-compress-middleware.source = ../k8s/ehpc-io-compress-middleware.yaml;
     manifests.ehpc-io-ingress.source = ../k8s/ehpc-io-ingress.yaml;
     manifests.ehpc-io-service.source = ../k8s/ehpc-io-service.yaml;
     manifests.ehpc-io-deployment.source = ../k8s/ehpc-io-deployment.yaml;
