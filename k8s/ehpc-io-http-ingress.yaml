@@ -1,17 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ehpc-io-ingress
+  name: ehpc-io-http-ingress
   namespace: ehpc-io
   annotations:
     kubernetes.io/ingress.class: traefik
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: ehpc-io-headers-middleware@kubernetescrd
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: ehpc-io-https-redirect-middleware@kubernetescrd
 spec:
-  tls:
-    - hosts: ["ehpc.io"]
-      secretName: ehpc-io-tls
   rules:
     - host: ehpc.io
       http:
@@ -20,6 +16,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ehpc-io
+                name: dummy
                 port:
                   number: 80
