@@ -14,8 +14,11 @@
         name = "cert-manager";
         targetNamespace = "cert-manager";
         createNamespace = true;
-        repo = "oci://quay.io/jetstack/charts/cert-manager";
+        repo = "https://charts.jetstack.io";
         version = "v1.18.2";
+        values = {
+          installCRDs = true;
+        };
       };
     };
     manifests.ehpc-io-letsencrypt.source = ../k8s/ehpc-io-letsencrypt.yaml;
