@@ -4,11 +4,23 @@
   services.k3s = {
     enable = true;
     role = "server";
-    clusterInit = true;
     extraFlags = toString [
       "--write-kubeconfig-group=kube"
       "--write-kubeconfig-mode=644"
     ];
+    autoDeployCharts = {
+      cert-manager = {
+        name = "cert-manager";
+        namespace = "cert-manager";
+        createNamespace = true;
+        chart = "cert-manager";
+        repo = "oci://quay.io/jetstack/charts/cert-manager";
+        version = "v1.18.2";
+        values = {
+          crds.enabled = true;
+        };
+      };
+    };
     manifests.ehpc-io-letsencrypt.source = ../k8s/ehpc-io-letsencrypt.yaml;
     manifests.ehpc-io-namespace.source = ../k8s/ehpc-io-namespace.yaml;
     manifests.ehpc-io-ingress.source = ../k8s/ehpc-io-ingress.yaml;
