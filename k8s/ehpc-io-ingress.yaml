@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ehpc-io-ingress
+  namespace: ehpc-io
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    haproxy.org/response-set-header: |
+      Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+      X-Content-Type-Options: nosniff
+      Referrer-Policy: strict-origin-when-cross-origin
+    haproxy.org/response-del-header: Server
+    haproxy.org/compression-types: |
+      text/html text/plain text/css application/javascript application/json
+    haproxy.org/backend-config-snippet: |
+      filter compression
+      compression algo gzip
+      compression type text/html text/plain text/xml text/css text/javascript application/json application/javascript application/xml
+      compression offload
+spec:
+  ingressClassName: haproxy
+  tls:
+    - hosts: ["ehpc.io"]
+      secretName: ehpc-io-tls
+  rules:
+    - host: ehpc.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: main-page-service
+                port:
+                  number: 80

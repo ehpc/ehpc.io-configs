@@ -3,12 +3,7 @@ let
   manifestsList = [
     ../k8s/ehpc-io-letsencrypt.yaml
     ../k8s/ehpc-io-namespace.yaml
-    ../k8s/ehpc-io-dummy-service.yaml
-    ../k8s/ehpc-io-https-redirect-middleware.yaml
-    ../k8s/ehpc-io-http-ingress.yaml
-    ../k8s/ehpc-io-headers-middleware.yaml
-    ../k8s/ehpc-io-compress-middleware.yaml
-    ../k8s/ehpc-io-https-ingress.yaml
+    ../k8s/ehpc-io-ingress.yaml
     ../k8s/ehpc-io-main-page-service.yaml
     ../k8s/ehpc-io-main-page-deployment.yaml
     ../k8s/ehpc-io-main-page-hpa.yaml
@@ -30,6 +25,7 @@ in
     enable = true;
     role = "server";
     extraFlags = toString [
+      "--disable=traefik"
       "--write-kubeconfig-group=kube"
       "--write-kubeconfig-mode=644"
     ];
@@ -44,6 +40,18 @@ in
         version = "v1.18.2";
         values = {
           installCRDs = true;
+        };
+      };
+
+      haproxy-kubernetes-ingress = {
+        enable = true;
+        name = "kubernetes-ingress";
+        repo = "https://haproxytech.github.io/helm-charts";
+        hash = "sha256-8D3Od8YWnsKvtlbQRWmM/Rl30ZlOWa8/PFoje4V8MTA=";
+        version = "1.44.6";
+        values = {
+          controller.ingressClass = "haproxy";
+          controller.service.type = "LoadBalancer";
         };
       };
     };
