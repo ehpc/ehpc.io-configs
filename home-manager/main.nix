@@ -12,8 +12,6 @@
 
   home.stateVersion = "25.05";
 
-  services.ssh-agent.enable = true;
-
   programs.home-manager.enable = true;
 
   programs.git = {
