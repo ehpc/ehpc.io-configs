@@ -5,6 +5,9 @@ metadata:
   namespace: ehpc-io
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    haproxy.org/ssl-redirect: "true"
+    haproxy.org/ssl-redirect-code: "301"
+    haproxy.org/ssl-redirect-port: "443"
     haproxy.org/response-set-header: |
       Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
       X-Content-Type-Options "nosniff"
@@ -15,6 +18,8 @@ metadata:
       compression algo gzip
       compression type text/html text/plain text/xml text/css text/javascript application/json application/javascript application/xml
       compression offload
+    haproxy.org/load-balance: "leastconn"
+    haproxy.org/pod-maxconn: "500"
 spec:
   ingressClassName: haproxy
   tls:
