@@ -19,7 +19,7 @@ metadata:
       compression type text/html text/plain text/xml text/css text/javascript application/json application/javascript application/xml
       compression offload
     haproxy.org/load-balance: "leastconn"
-    haproxy.org/pod-maxconn: "500"
+    haproxy.org/pod-maxconn: "800"
 spec:
   ingressClassName: haproxy
   tls:
