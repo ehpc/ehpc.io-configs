@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate
+  namespace: ehpc-io
+spec:
+  secretName: ehpc-io-tls-ecdsa
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  dnsNames:
+    - ehpc.io
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer

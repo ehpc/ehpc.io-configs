@@ -24,7 +24,7 @@ spec:
   ingressClassName: haproxy
   tls:
     - hosts: ["ehpc.io"]
-      secretName: ehpc-io-tls
+      secretName: ehpc-io-tls-ecdsa
   rules:
     - host: ehpc.io
       http:

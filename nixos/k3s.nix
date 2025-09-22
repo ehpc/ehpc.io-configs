@@ -2,6 +2,7 @@
 let
   manifestsList = [
     ../k8s/ehpc-io-letsencrypt.yaml
+    ../k8s/ehpc-io-certificate.yaml
     ../k8s/ehpc-io-namespace.yaml
     ../k8s/ehpc-io-ingress.yaml
     ../k8s/ehpc-io-main-page-service.yaml
