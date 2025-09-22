@@ -16,6 +16,7 @@
   };
   services.sshd.enable = true;
   services.fail2ban.enable = true;
-  
+
   programs.ssh.startAgent = true;
+  security.pam.sshAgentAuth.enable = true;
 }
