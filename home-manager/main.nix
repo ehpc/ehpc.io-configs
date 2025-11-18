@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 {
   home.username = "ehpc";
@@ -19,4 +19,6 @@
     userName = "ehpc";
     userEmail = "ehpc@ehpc.io";
   };
+
+  programs.k9s.enable = true;
 }

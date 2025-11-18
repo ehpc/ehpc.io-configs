@@ -7,3 +7,7 @@ This is my [NixOS](https://nixos.org/) config for the [ehpc.io](https://ehpc.io)
 It's based on [flakes](https://wiki.nixos.org/wiki/Flakes).
 
 A few secrets are managed by [sops-nix](https://github.com/Mic92/sops-nix).
+
+## Commands
+
+Rebuild from config `sudo nixos-rebuild switch --flake .#nixos`

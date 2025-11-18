@@ -29,6 +29,7 @@ in
       "--disable=traefik"
       "--write-kubeconfig-group=kube"
       "--write-kubeconfig-mode=644"
+      "--tls-san=ehpc.io"
     ];
     autoDeployCharts = {
       cert-manager = {
@@ -58,4 +59,6 @@ in
     };
     manifests = manifestsAttrs;
   };
+
+  environment.variables.KUBECONFIG = "/etc/rancher/k3s/k3s.yaml";
 }
