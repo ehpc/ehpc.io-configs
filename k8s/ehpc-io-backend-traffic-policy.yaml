@@ -1,0 +1,17 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: response-compression
+  namespace: ehpc-io
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: main-page-httproute
+  compressor:
+    - type: Brotli
+      brotli: {}
+    - type: Gzip
+      gzip: {}
+    - type: Zstd
+      zstd: {}

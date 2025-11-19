@@ -1,17 +1,35 @@
 { lib, ... }:
 let
   manifestsList = [
-    ../k8s/ehpc-io-letsencrypt.yaml
-    ../k8s/ehpc-io-certificate.yaml
+
+    ../k8s/letsencrypt.yaml
+    ../k8s/gatewayclass.yaml
+    ../k8s/gateway.yaml
+    ../k8s/tls-redirect.yaml
+    ../k8s/www-redirect.yaml
+    ../k8s/client-traffic-policy.yaml
+
     ../k8s/ehpc-io-namespace.yaml
-    ../k8s/ehpc-io-ingress.yaml
-    ../k8s/ehpc-io-main-page-service.yaml
     ../k8s/ehpc-io-main-page-deployment.yaml
+    ../k8s/ehpc-io-main-page-service.yaml
+    ../k8s/ehpc-io-main-page-httproute.yaml
+    ../k8s/ehpc-io-backend-traffic-policy.yaml
     ../k8s/ehpc-io-main-page-hpa.yaml
   ];
 
   manifestsAttrs = builtins.listToAttrs (
-    map (p: {
+    [
+      {
+        name = "envoy-gateway";
+        value = {
+          source = builtins.fetchurl {
+            url = "https://github.com/envoyproxy/gateway/releases/download/v1.6.0/install.yaml";
+            sha256 = "b622097b5df36d2d26e40fce5e9dada26f61c73884b211b33016898b3c667321";
+          };
+        };
+      }
+    ]
+    ++ map (p: {
       name = lib.removeSuffix ".yaml" (baseNameOf (toString p));
       value = {
         source = p;
@@ -41,19 +59,12 @@ in
         hash = "sha256-2t33r3sfDqqhDt15Cu+gvYwrB4MP6/ZZRg2EMhf1s8U=";
         version = "v1.18.2";
         values = {
-          installCRDs = true;
-        };
-      };
-
-      haproxy-kubernetes-ingress = {
-        enable = true;
-        name = "kubernetes-ingress";
-        repo = "https://haproxytech.github.io/helm-charts";
-        hash = "sha256-8D3Od8YWnsKvtlbQRWmM/Rl30ZlOWa8/PFoje4V8MTA=";
-        version = "1.44.6";
-        values = {
-          controller.ingressClass = "haproxy";
-          controller.service.type = "LoadBalancer";
+          crds.enabled = true;
+          config = {
+            apiVersion = "controller.config.cert-manager.io/v1alpha1";
+            kind = "ControllerConfiguration";
+            enableGatewayAPI = true;
+          };
         };
       };
     };
