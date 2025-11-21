@@ -6,6 +6,7 @@
     extraGroups = [
       "wheel"
       "podman"
+      "docker"
       "kube"
     ];
   };

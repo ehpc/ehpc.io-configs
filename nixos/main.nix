@@ -33,6 +33,7 @@
     ./firewall.nix
     ./system-packages.nix
     ./containers.nix
+    ./helm.nix
     ./k3s.nix
   ];
 }

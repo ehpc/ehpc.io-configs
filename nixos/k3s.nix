@@ -1,6 +1,8 @@
 { lib, ... }:
 let
   manifestsList = [
+    ../k8s/helm-envoy-gateway.yaml
+    ../k8s/helm-envoy-gateway-addons.yaml
 
     ../k8s/letsencrypt.yaml
     ../k8s/gatewayclass.yaml
@@ -18,18 +20,7 @@ let
   ];
 
   manifestsAttrs = builtins.listToAttrs (
-    [
-      {
-        name = "envoy-gateway";
-        value = {
-          source = builtins.fetchurl {
-            url = "https://github.com/envoyproxy/gateway/releases/download/v1.6.0/install.yaml";
-            sha256 = "b622097b5df36d2d26e40fce5e9dada26f61c73884b211b33016898b3c667321";
-          };
-        };
-      }
-    ]
-    ++ map (p: {
+    map (p: {
       name = lib.removeSuffix ".yaml" (baseNameOf (toString p));
       value = {
         source = p;
