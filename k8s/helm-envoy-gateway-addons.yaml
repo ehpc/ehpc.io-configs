@@ -12,10 +12,14 @@ spec:
     grafana:
       service:
         type: ClusterIP
+      persistence:
+        enabled: true
     prometheus:
       server:
         service:
           type: ClusterIP
+        global:
+          scrape_interval: "20s"
       prometheus-node-exporter:
         enabled: true
       kube-state-metrics:

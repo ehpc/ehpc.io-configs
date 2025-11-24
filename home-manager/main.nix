@@ -16,8 +16,12 @@
 
   programs.git = {
     enable = true;
-    userName = "ehpc";
-    userEmail = "ehpc@ehpc.io";
+    settings = {
+      user = {
+        name = "ehpc";
+        email = "ehpc@ehpc.io";
+      };
+    };
   };
 
   programs.k9s.enable = true;

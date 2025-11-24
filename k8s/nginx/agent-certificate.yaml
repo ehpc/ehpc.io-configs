@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nginx
+  namespace: nginx-gateway
+spec:
+  secretName: agent-tls
+  usages:
+    - "digital signature"
+    - "key encipherment"
+  dnsNames:
+    - "*.cluster.local"
+  issuerRef:
+    name: nginx-gateway-issuer

@@ -23,6 +23,8 @@
 
   programs.nix-ld.enable = true;
 
+  zramSwap.enable = true;
+
   imports = [
     ./hardware-configuration.nix
     ./sops.nix
@@ -34,6 +36,6 @@
     ./system-packages.nix
     ./containers.nix
     ./helm.nix
-    ./k3s.nix
+    ./rke2.nix
   ];
 }

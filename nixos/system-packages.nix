@@ -9,5 +9,6 @@
     age
     sops
     jq
+    kubectl
   ];
 }
