@@ -1,0 +1,13 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: ngf
+  namespace: kube-system
+spec:
+  chart: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
+  targetNamespace: nginx-gateway
+  createNamespace: true
+  valuesContent: |-
+    nginxGateway:
+      gwAPIExperimentalFeatures:
+        enable: true

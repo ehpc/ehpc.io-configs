@@ -13,5 +13,5 @@ spec:
           gatewayHTTPRoute:
             parentRefs:
               - kind: Gateway
-                name: eg
+                name: main-gateway
                 namespace: default

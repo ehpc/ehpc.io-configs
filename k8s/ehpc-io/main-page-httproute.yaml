@@ -5,7 +5,7 @@ metadata:
   namespace: ehpc-io
 spec:
   parentRefs:
-    - name: eg
+    - name: main-gateway
       namespace: default
   hostnames:
     - "ehpc.io"

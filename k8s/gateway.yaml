@@ -1,11 +1,11 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: eg
+  name: main-gateway
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
-  gatewayClassName: eg
+  gatewayClassName: nginx
   listeners:
     - name: http
       port: 80
@@ -21,7 +21,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: eg-https
+            name: ehpc-io-secret
       allowedRoutes:
         namespaces:
           from: All
@@ -33,7 +33,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: eg-https-www
+            name: www-ehpc-io-secret
       allowedRoutes:
         namespaces:
           from: All
@@ -45,7 +45,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: eg-https-grafana
+            name: grafana-ehpc-io-secret
       allowedRoutes:
         namespaces:
           from: All
