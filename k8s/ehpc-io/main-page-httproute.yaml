@@ -21,11 +21,14 @@ spec:
         - type: ResponseHeaderModifier
           responseHeaderModifier:
             set:
-              - name: "Strict-Transport-Security"
-                value: "max-age=31536000; includeSubDomains; preload"
-              - name: "Referrer-Policy"
-                value: "strict-origin-when-cross-origin"
-              - name: "X-Content-Type-Options"
-                value: "nosniff"
-            remove:
-              - "Server"
+              - name: Strict-Transport-Security
+                value: max-age=31536000; includeSubDomains; preload
+              - name: Referrer-Policy
+                value: strict-origin-when-cross-origin
+              - name: X-Content-Type-Options
+                value: nosniff
+        - type: ExtensionRef
+          extensionRef:
+            group: gateway.nginx.org
+            kind: SnippetsFilter
+            name: compression-sf

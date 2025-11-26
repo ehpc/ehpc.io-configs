@@ -14,7 +14,8 @@ let
     ../k8s/nginx/gateway-crds.yaml # https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v2.2.1
     ../k8s/system/cert-manager.yaml
 
-    ../metallb/metallb.yaml
+    ../k8s/metallb/metallb.yaml
+    ../k8s/metallb/l2-advertisement.yaml
 
     ../k8s/nginx/issuer.yaml
     ../k8s/nginx/agent-certificate.yaml
@@ -27,13 +28,12 @@ let
 
     ../k8s/tls-redirect.yaml
     ../k8s/www-redirect.yaml
-    # ../k8s/client-traffic-policy.yaml
 
     ../k8s/ehpc-io/main-page-deployment.yaml
     ../k8s/ehpc-io/main-page-service.yaml
     ../k8s/ehpc-io/main-page-httproute.yaml
-    # ../k8s/ehpc-io/backend-traffic-policy.yaml
     ../k8s/ehpc-io/main-page-hpa.yaml
+    ../k8s/ehpc-io/compression-sf.yaml
   ];
 
   manifestPathToDict = path: {
@@ -58,7 +58,15 @@ let
         };
       }
     ]
-    ++ manifests;
+    ++ manifests
+    ++ [
+      {
+        name = "main-ip-address-pool.yaml";
+        value = {
+          source = config.sops.templates."main-ip-address-pool".path;
+        };
+      }
+    ];
 
   allManifestsAttrs = builtins.listToAttrs allManifests;
 in
@@ -74,6 +82,19 @@ in
       data:
         tls.crt: ${config.sops.placeholder."ngf-root-ca-base64-crt"}
         tls.key: ${config.sops.placeholder."ngf-root-ca-base64.key"}
+    '';
+  };
+
+  sops.templates."main-ip-address-pool" = {
+    content = ''
+      apiVersion: metallb.io/v1beta1
+      kind: IPAddressPool
+      metadata:
+        name: main-pool
+        namespace: metallb-system
+      spec:
+        addresses:
+        - ${config.sops.placeholder."server-ip"}/32
     '';
   };
 

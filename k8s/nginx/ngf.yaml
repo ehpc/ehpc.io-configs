@@ -11,3 +11,5 @@ spec:
     nginxGateway:
       gwAPIExperimentalFeatures:
         enable: true
+      snippetsFilters:
+        enable: true

@@ -5,7 +5,7 @@ metadata:
   namespace: monitoring
 spec:
   parentRefs:
-    - name: eg
+    - name: main-gateway
       namespace: default
   hostnames:
     - "grafana.ehpc.io"
