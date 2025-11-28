@@ -8,6 +8,5 @@
         Defaults timestamp_timeout=30
       '';
     };
-    polkit.enable = true;
   };
 }

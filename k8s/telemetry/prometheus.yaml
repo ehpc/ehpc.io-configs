@@ -1,0 +1,23 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: prometheus
+  namespace: kube-system
+spec:
+  chart: oci://ghcr.io/prometheus-community/charts/prometheus
+  targetNamespace: monitoring
+  createNamespace: true
+  valuesContent: |-
+    server:
+      global:
+        scrape_interval: 15s
+      service:
+        retentionSize: 2.4Gi
+      persistentVolume:
+        enabled: true
+        size: 3Gi
+        storageClass: longhorn
+    alertmanager:
+      persistence:
+        size: 1Gi
+        storageClass: longhorn

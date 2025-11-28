@@ -10,5 +10,9 @@
     sops
     jq
     kubectl
+    nfs-utils
+    cryptsetup
+    lvm2
+    tailscale
   ];
 }

@@ -1,5 +1,6 @@
 { config, ... }:
 {
+  networking.hostName = "ehpc-io-vps";
   networking.useNetworkd = true;
   networking.useDHCP = false;
   systemd.network.enable = true;

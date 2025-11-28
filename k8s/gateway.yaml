@@ -37,15 +37,3 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: grafana
-      port: 8543
-      protocol: HTTPS
-      hostname: "grafana.ehpc.io"
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: grafana-ehpc-io-secret
-      allowedRoutes:
-        namespaces:
-          from: All

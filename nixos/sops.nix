@@ -4,6 +4,7 @@
   sops.defaultSopsFile = ../secrets.yaml;
   sops.secrets."ehpc-public-key" = { };
   sops.secrets."server-ip" = { };
+  sops.secrets."kawaii" = { };
   sops.secrets."ipv4-address" = { };
   sops.secrets."ipv6-address" = { };
   sops.secrets."ipv4-gateway" = { };

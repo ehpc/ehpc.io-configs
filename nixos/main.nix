@@ -30,10 +30,13 @@
     ./sops.nix
     ./boot.nix
     ./network.nix
+    ./security.nix
     ./ssh.nix
     ./users.nix
     ./firewall.nix
     ./system-packages.nix
+    ./nfs.nix
+    ./tailscale.nix
     ./containers.nix
     ./helm.nix
     ./rke2.nix

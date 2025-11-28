@@ -12,5 +12,6 @@
     allowedUDPPorts = [
       443
     ];
+    trustedInterfaces = [ "tailscale0" ];
   };
 }

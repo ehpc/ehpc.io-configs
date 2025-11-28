@@ -6,6 +6,7 @@
 }:
 let
   namespacePaths = [
+    ../k8s/longhorn/namespace.yaml
     ../k8s/nginx/namespace.yaml
     ../k8s/ehpc-io/namespace.yaml
   ];
@@ -17,6 +18,8 @@ let
     ../k8s/metallb/metallb.yaml
     ../k8s/metallb/l2-advertisement.yaml
 
+    ../k8s/longhorn/longhorn.yaml
+
     ../k8s/nginx/issuer.yaml
     ../k8s/nginx/agent-certificate.yaml
     ../k8s/nginx/server-certificate.yaml
@@ -25,9 +28,13 @@ let
 
     ../k8s/letsencrypt.yaml
     ../k8s/gateway.yaml
+    ../k8s/vpn-gateway.yaml
 
     ../k8s/tls-redirect.yaml
     ../k8s/www-redirect.yaml
+
+    ../k8s/telemetry/prometheus.yaml
+    ../k8s/telemetry/grafana.yaml
 
     ../k8s/ehpc-io/main-page-deployment.yaml
     ../k8s/ehpc-io/main-page-service.yaml
@@ -55,6 +62,12 @@ let
         name = "nginx-gateway-ca.yaml";
         value = {
           source = config.sops.templates."nginx-gateway-ca".path;
+        };
+      }
+      {
+        name = "grafana-admin-secret.yaml";
+        value = {
+          source = config.sops.templates."grafana-admin-secret".path;
         };
       }
     ]
@@ -98,6 +111,20 @@ in
     '';
   };
 
+  sops.templates."grafana-admin-secret" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: grafana-admin-secret
+        namespace: monitoring
+      type: Opaque
+      stringData:
+        admin-user: ehpc
+        admin-password: ${config.sops.placeholder."kawaii"}
+    '';
+  };
+
   users.groups.kube = { };
 
   services.k3s.enable = false;
@@ -112,7 +139,7 @@ in
       "--write-kubeconfig-mode=644"
       "--tls-san=ehpc.io"
     ];
-    manifests = allManifestsAttrs;
+    manifests = {};
   };
 
   environment.variables.KUBECONFIG = "/etc/rancher/rke2/rke2.yaml";

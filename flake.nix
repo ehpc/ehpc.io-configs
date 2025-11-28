@@ -17,18 +17,28 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       home-manager,
       sops-nix,
       ...
     }:
+    let
+      system = "x86_64-linux";
+      domain = "ehpc.io";
+    in
     {
+      overlays.default = final: prev: {
+        longhornctl = prev.callPackage ./pkgs/longhornctl.nix { };
+      };
+
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
+        inherit system;
         specialArgs = {
-          domain = "ehpc.io";
+          inherit domain;
         };
         modules = [
+          { nixpkgs.overlays = [ self.overlays.default ]; }
           ./nixos/main.nix
           home-manager.nixosModules.home-manager
           {
