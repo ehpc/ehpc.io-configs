@@ -2,86 +2,12 @@
   config,
   lib,
   sops,
+  pkgs,
   ...
 }:
 let
-  namespacePaths = [
-    ../k8s/longhorn/namespace.yaml
-    ../k8s/nginx/namespace.yaml
-    ../k8s/ehpc-io/namespace.yaml
-  ];
-
-  manifestPaths = [
-    ../k8s/nginx/gateway-crds.yaml # https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v2.2.1
-    ../k8s/system/cert-manager.yaml
-
-    ../k8s/metallb/metallb.yaml
-    ../k8s/metallb/l2-advertisement.yaml
-
-    ../k8s/longhorn/longhorn.yaml
-
-    ../k8s/nginx/issuer.yaml
-    ../k8s/nginx/agent-certificate.yaml
-    ../k8s/nginx/server-certificate.yaml
-
-    ../k8s/nginx/ngf.yaml
-
-    ../k8s/letsencrypt.yaml
-    ../k8s/gateway.yaml
-    ../k8s/vpn-gateway.yaml
-
-    ../k8s/tls-redirect.yaml
-    ../k8s/www-redirect.yaml
-
-    ../k8s/telemetry/prometheus.yaml
-    ../k8s/telemetry/grafana.yaml
-
-    ../k8s/ehpc-io/main-page-deployment.yaml
-    ../k8s/ehpc-io/main-page-service.yaml
-    ../k8s/ehpc-io/main-page-httproute.yaml
-    ../k8s/ehpc-io/main-page-hpa.yaml
-    ../k8s/ehpc-io/compression-sf.yaml
-  ];
-
-  manifestPathToDict = path: {
-    name = builtins.replaceStrings [ "../k8s/" "/" ] [ "" "-" ] (
-      builtins.head (builtins.match ".*/k8s/(.*)" (toString path))
-    );
-    value = {
-      source = path;
-    };
-  };
-
-  namespaces = map manifestPathToDict namespacePaths;
-  manifests = map manifestPathToDict manifestPaths;
-
-  allManifests =
-    namespaces
-    ++ [
-      {
-        name = "nginx-gateway-ca.yaml";
-        value = {
-          source = config.sops.templates."nginx-gateway-ca".path;
-        };
-      }
-      {
-        name = "grafana-admin-secret.yaml";
-        value = {
-          source = config.sops.templates."grafana-admin-secret".path;
-        };
-      }
-    ]
-    ++ manifests
-    ++ [
-      {
-        name = "main-ip-address-pool.yaml";
-        value = {
-          source = config.sops.templates."main-ip-address-pool".path;
-        };
-      }
-    ];
-
-  allManifestsAttrs = builtins.listToAttrs allManifests;
+  kubeconfig = "/etc/rancher/rke2/rke2.yaml";
+  manifestsRoot = "/home/ehpc/ehpc.io-configs/k8s";
 in
 {
   sops.templates."nginx-gateway-ca" = {
@@ -125,9 +51,20 @@ in
     '';
   };
 
-  users.groups.kube = { };
+  sops.templates."tailscale-operator-oauth" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: operator-oauth
+        namespace: tailscale
+      stringData:
+        client_id: ${config.sops.placeholder."tailscale-client-id"}
+        client_secret: ${config.sops.placeholder."tailscale-client-secret"}
+    '';
+  };
 
-  services.k3s.enable = false;
+  users.groups.kube = { };
 
   services.rke2 = {
     enable = true;
@@ -139,8 +76,95 @@ in
       "--write-kubeconfig-mode=644"
       "--tls-san=ehpc.io"
     ];
-    manifests = {};
+    manifests = { };
   };
 
-  environment.variables.KUBECONFIG = "/etc/rancher/rke2/rke2.yaml";
+  environment.variables.KUBECONFIG = kubeconfig;
+
+  systemd.services.apply-k8s-manifests = {
+    description = "Apply Kubernetes manifests from git repo + sops templates";
+    wants = [
+      "rke2-server.service"
+      "sops-nix.service"
+    ];
+    after = [
+      "rke2-server.service"
+      "sops-nix.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      Environment = [
+        "KUBECONFIG=${kubeconfig}"
+        "PATH=${pkgs.kubectl}/bin:/run/current-system/sw/bin"
+      ];
+    };
+
+    script = ''
+      set -euo pipefail
+
+      echo KUBECONFIG=$KUBECONFIG
+
+      echo "[apply-k8s-manifests] Waiting for API server..."
+      for i in $(seq 1 60); do
+        if kubectl get ns kube-system >/dev/null 2>&1; then
+          echo "[apply-k8s-manifests] API is ready."
+          break
+        fi
+        sleep 2
+      done
+
+      cd ${manifestsRoot}
+
+      if ! kubectl get crd gatewayclasses.gateway.networking.k8s.io >/dev/null 2>&1; then
+        echo "[apply-k8s-manifests] Applying Gateway API crds"
+        kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v2.2.1" | kubectl apply -f -
+      fi
+
+      if ! kubectl get crd nginxproxies.gateway.nginx.org >/dev/null 2>&1; then
+        echo "[apply-k8s-manifests] Applying nginx crds"
+        kubectl apply --server-side -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/main/deploy/crds.yaml
+      fi
+
+      echo "[apply-k8s-manifests] Applying 020-namespaces"
+      kubectl apply -f 020-namespaces
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest grafana-admin-secret"
+      kubectl apply -f "${config.sops.templates."grafana-admin-secret".path}"
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest tailscale-operator-oauth"
+      kubectl apply -f "${config.sops.templates."tailscale-operator-oauth".path}"
+
+      echo "[apply-k8s-manifests] Applying helmfile"
+      helmfile apply
+
+      echo "[apply-k8s-manifests] Waiting for cert-manager-webhook..."
+      kubectl -n cert-manager wait --for=condition=Available deploy/cert-manager-webhook --timeout=120s
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest nginx-gateway-ca"
+      kubectl apply -f "${config.sops.templates."nginx-gateway-ca".path}"
+
+      echo "[apply-k8s-manifests] Applying 030-tailscale"
+      kubectl apply -f 030-tailscale
+
+      echo "[apply-k8s-manifests] Applying 040-metallb"
+      kubectl apply -f 040-metallb
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest main-ip-address-pool"
+      kubectl apply -f "${config.sops.templates."main-ip-address-pool".path}"
+
+      echo "[apply-k8s-manifests] Applying 060-nginx"
+      kubectl apply -f 060-nginx
+
+      echo "[apply-k8s-manifests] Applying 080-server"
+      kubectl apply -f 080-server
+
+      echo "[apply-k8s-manifests] Applying 100-ehpc-io"
+      kubectl apply -f 100-ehpc-io
+
+      echo "[apply-k8s-manifests] Done"
+    '';
+  };
 }

@@ -1,0 +1,19 @@
+server:
+  global:
+    scrape_interval: 15s
+  service:
+    retentionSize: 2.4Gi
+    type: LoadBalancer
+    annotations:
+      tailscale.com/proxy-group: ts-ingress-proxies
+      tailscale.com/hostname: ehpc-io-prometheus
+      tailscale.com/tags: "tag:monitoring"
+      tailscale.com/expose: "true"
+  persistentVolume:
+    enabled: true
+    size: 3Gi
+    storageClass: longhorn
+alertmanager:
+  persistence:
+    size: 1Gi
+    storageClass: longhorn

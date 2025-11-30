@@ -1,0 +1,8 @@
+nginxGateway:
+  gwAPIExperimentalFeatures:
+    enable: true
+  snippetsFilters:
+    enable: true
+nginx:
+  service:
+    loadBalancerClass: "metallb"

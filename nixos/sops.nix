@@ -5,6 +5,8 @@
   sops.secrets."ehpc-public-key" = { };
   sops.secrets."server-ip" = { };
   sops.secrets."kawaii" = { };
+  sops.secrets."tailscale-client-id" = { };
+  sops.secrets."tailscale-client-secret" = { };
   sops.secrets."ipv4-address" = { };
   sops.secrets."ipv6-address" = { };
   sops.secrets."ipv4-gateway" = { };

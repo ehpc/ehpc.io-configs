@@ -1,0 +1,12 @@
+defaultSettings:
+  defaultReplicaCount: 1
+persistence:
+  defaultClassReplicaCount: 1
+service:
+  ui:
+    type: LoadBalancer
+    annotations:
+      tailscale.com/proxy-group: ts-ingress-proxies
+      tailscale.com/hostname: ehpc-io-longhorn
+      tailscale.com/tags: "tag:monitoring"
+      tailscale.com/expose: "true"
