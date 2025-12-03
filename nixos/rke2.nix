@@ -118,6 +118,8 @@ in
 
       cd ${manifestsRoot}
 
+      kustomize build "github.com/rancher/local-path-provisioner/deploy?ref=v0.0.32" | kubectl apply -f -
+
       if ! kubectl get crd gatewayclasses.gateway.networking.k8s.io >/dev/null 2>&1; then
         echo "[apply-k8s-manifests] Applying Gateway API crds"
         kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v2.2.1" | kubectl apply -f -

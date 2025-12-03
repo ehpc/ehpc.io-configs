@@ -3,8 +3,8 @@ repositories:
     url: https://metallb.github.io/metallb
   - name: longhorn
     url: https://charts.longhorn.io
-  - name: grafana
-    url: https://grafana.github.io/helm-charts
+  # - name: grafana
+  #   url: https://grafana.github.io/helm-charts
   - name: jetstack
     url: quay.io/jetstack/charts
     oci: true
@@ -16,6 +16,8 @@ repositories:
     oci: true
   - name: tailscale
     url: https://pkgs.tailscale.com/helmcharts
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
 
 releases:
   - name: cert-manager
@@ -30,11 +32,13 @@ releases:
     values:
       - values/metallb.yaml
   - name: longhorn
+    installed: false
     namespace: longhorn-system
     chart: longhorn/longhorn
     values:
       - values/longhorn.yaml
   - name: prometheus
+    installed: true
     namespace: monitoring
     chart: prometheus-community/prometheus
     version: ~27.47.0
@@ -42,10 +46,15 @@ releases:
       - values/prometheus.yaml
   - name: grafana
     namespace: monitoring
-    chart: grafana/grafana
-    version: ~10.2.0
-    values:
-      - values/grafana.yaml
+    chart: ./grafana-chart
+    # installed: false
+  # - name: grafana
+  #   installed: false
+  #   namespace: monitoring
+  #   chart: grafana/grafana
+  #   version: ~10.2.0
+  #   values:
+  #     - values/grafana.yaml
   - name: ngf
     namespace: nginx-gateway
     chart: nginx/nginx-gateway-fabric
@@ -59,3 +68,7 @@ releases:
     wait: true
     values:
       - values/tailscale.yaml
+  - name: opentelemetry-operator
+    chart: open-telemetry/opentelemetry-operator
+    values:
+      - values/opentelemetry-operator.yaml

@@ -1,0 +1,43 @@
+grafana:
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 1Gi
+  admin:
+    existingSecret: grafana-admin-secret
+  route:
+    main:
+      enabled: true
+      parentRefs:
+        - name: vpn-gateway
+  service:
+    type: LoadBalancer
+    loadBalancerClass: tailscale
+    annotations:
+      tailscale.com/proxy-group: ts-ingress-proxies
+      tailscale.com/hostname: ehpc-io-grafana
+      tailscale.com/tags: "tag:monitoring"
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server.monitoring.svc
+          access: proxy
+          isDefault: true
+          uid: prometheus
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "ehpc-io"
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/ehpc-io
+  dashboardsConfigMaps:
+    ehpc-io: "grafana-dashboards"
