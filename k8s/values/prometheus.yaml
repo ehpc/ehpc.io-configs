@@ -321,3 +321,7 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_node_name]
             action: replace
             target_label: node
+
+      - job_name: redis_exporter
+        static_configs:
+          - targets: ["valkey-metrics.valkey:9121"]

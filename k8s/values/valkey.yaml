@@ -1,0 +1,14 @@
+replicaCount: 1
+service:
+  type: LoadBalancer
+  annotations:
+    tailscale.com/proxy-group: ts-ingress-proxies
+    tailscale.com/hostname: ehpc-io-valkey
+    tailscale.com/tags: "tag:db"
+    tailscale.com/expose: "true"
+dataStorage:
+  enabled: true
+  requestedSize: "5Gi"
+  className: "local-path"
+metrics:
+  enabled: true
