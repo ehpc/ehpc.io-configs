@@ -1,7 +1,11 @@
-{ ... }:
+{ lib, ... }:
 
 {
   system.stateVersion = "25.05";
+
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+    "claude-code"
+  ];
 
   nix.settings.experimental-features = [
     "nix-command"
