@@ -8,7 +8,6 @@
   programs.claude-code = {
     enable = true;
     package = pkgs.claude-code;
-    skills = { };
     settings = {
       env = {
         CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
