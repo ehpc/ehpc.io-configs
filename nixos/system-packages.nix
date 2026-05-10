@@ -1,6 +1,7 @@
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
+    kitty.terminfo
     nixfmt-rfc-style
     vim
     htop
