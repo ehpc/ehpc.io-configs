@@ -98,7 +98,7 @@ in
       User = "root";
       Environment = [
         "KUBECONFIG=${kubeconfig}"
-        "PATH=${pkgs.kubectl}/bin:/run/current-system/sw/bin"
+        "PATH=${pkgs.kubectl}/bin:${pkgs.git}/bin:/run/current-system/sw/bin"
       ];
     };
 
