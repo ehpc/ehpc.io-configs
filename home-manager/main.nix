@@ -1,6 +1,10 @@
 { pkgs, config, ... }:
 
 {
+  imports = [
+    ./programs/claude
+  ];
+
   home.username = "ehpc";
   home.homeDirectory = "/home/ehpc";
 
