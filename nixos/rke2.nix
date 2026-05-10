@@ -118,7 +118,7 @@ in
 
       cd ${manifestsRoot}
 
-      kustomize build "github.com/rancher/local-path-provisioner/deploy?ref=v0.0.32" | kubectl apply -f -
+      kubectl apply -k "github.com/rancher/local-path-provisioner/deploy?ref=v0.0.32"
 
       if ! kubectl get crd gatewayclasses.gateway.networking.k8s.io >/dev/null 2>&1; then
         echo "[apply-k8s-manifests] Applying Gateway API crds"
