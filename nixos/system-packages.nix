@@ -15,5 +15,7 @@
     cryptsetup
     lvm2
     tailscale
+    lazygit
+    xdg-utils
   ];
 }
