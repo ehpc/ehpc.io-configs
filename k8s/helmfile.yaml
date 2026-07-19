@@ -9,6 +9,8 @@ repositories:
     oci: true
   - name: vm
     url: https://victoriametrics.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
   - name: tailscale
     url: https://pkgs.tailscale.com/helmcharts
   - name: open-telemetry
@@ -34,6 +36,18 @@ releases:
     version: ~0.42.0
     values:
       - values/victoria-metrics.yaml
+  - name: node-exporter
+    namespace: monitoring
+    chart: prometheus-community/prometheus-node-exporter
+    version: ~4.56.1
+    values:
+      - values/node-exporter.yaml
+  - name: kube-state-metrics
+    namespace: monitoring
+    chart: prometheus-community/kube-state-metrics
+    version: ~7.8.1
+    values:
+      - values/kube-state-metrics.yaml
   - name: grafana
     namespace: monitoring
     chart: ./grafana-chart

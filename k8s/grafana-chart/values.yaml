@@ -14,11 +14,10 @@ grafana:
         - name: vpn-gateway
   resources:
     requests:
-      memory: 128Mi
-      cpu: 50m
-    limits:
       memory: 256Mi
-      cpu: 200m
+      cpu: 100m
+    limits:
+      memory: 512Mi
   service:
     type: LoadBalancer
     loadBalancerClass: tailscale
