@@ -7,9 +7,8 @@ repositories:
   - name: nginx
     url: ghcr.io/nginx/charts
     oci: true
-  - name: prometheus-community
-    url: ghcr.io/prometheus-community/charts
-    oci: true
+  - name: vm
+    url: https://victoriametrics.github.io/helm-charts
   - name: tailscale
     url: https://pkgs.tailscale.com/helmcharts
   - name: open-telemetry
@@ -29,13 +28,12 @@ releases:
     chart: metallb/metallb
     values:
       - values/metallb.yaml
-  - name: prometheus
-    installed: true
+  - name: victoria-metrics
     namespace: monitoring
-    chart: prometheus-community/prometheus
-    version: ~27.47.0
+    chart: vm/victoria-metrics-single
+    version: ~0.42.0
     values:
-      - values/prometheus.yaml
+      - values/victoria-metrics.yaml
   - name: grafana
     namespace: monitoring
     chart: ./grafana-chart

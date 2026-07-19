@@ -51,6 +51,29 @@ in
     '';
   };
 
+  sops.templates."grafana-contactpoints" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: grafana-contactpoints
+        namespace: monitoring
+      type: Opaque
+      stringData:
+        contactpoints.yaml: |
+          apiVersion: 1
+          contactPoints:
+            - orgId: 1
+              name: Telegram
+              receivers:
+                - uid: telegram
+                  type: telegram
+                  settings:
+                    bottoken: ${config.sops.placeholder."telegram-bot-token"}
+                    chatid: "${config.sops.placeholder."telegram-chat-id"}"
+    '';
+  };
+
   sops.templates."tailscale-operator-oauth" = {
     content = ''
       apiVersion: v1
@@ -135,6 +158,9 @@ in
 
       echo "[apply-k8s-manifests] Applying dynamic manifest grafana-admin-secret"
       kubectl apply -f "${config.sops.templates."grafana-admin-secret".path}"
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest grafana-contactpoints"
+      kubectl apply -f "${config.sops.templates."grafana-contactpoints".path}"
 
       echo "[apply-k8s-manifests] Applying dynamic manifest tailscale-operator-oauth"
       kubectl apply -f "${config.sops.templates."tailscale-operator-oauth".path}"

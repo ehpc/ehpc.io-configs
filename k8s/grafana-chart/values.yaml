@@ -12,6 +12,13 @@ grafana:
       enabled: true
       parentRefs:
         - name: vpn-gateway
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 200m
   service:
     type: LoadBalancer
     loadBalancerClass: tailscale
@@ -19,13 +26,73 @@ grafana:
       tailscale.com/proxy-group: ts-ingress-proxies
       tailscale.com/hostname: ehpc-io-grafana
       tailscale.com/tags: "tag:monitoring"
+  extraSecretMounts:
+    - name: grafana-contactpoints
+      secretName: grafana-contactpoints
+      mountPath: /etc/grafana/provisioning/alerting/contactpoints.yaml
+      subPath: contactpoints.yaml
+      readOnly: true
+  alerting:
+    policies.yaml:
+      apiVersion: 1
+      policies:
+        - orgId: 1
+          receiver: Telegram
+    rules.yaml:
+      apiVersion: 1
+      groups:
+        - orgId: 1
+          name: vps
+          folder: alerts
+          interval: 1m
+          rules:
+            - uid: vps-memory-low
+              title: VPS Memory Low
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 300
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    expr: machine_memory_bytes - on() node_memory_working_set_bytes
+                    instant: true
+                    refId: A
+                - refId: C
+                  relativeTimeRange:
+                    from: 300
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                      - evaluator:
+                          params:
+                            - 524288000
+                          type: lt
+                        operator:
+                          type: and
+                        query:
+                          params:
+                            - A
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: A
+                    refId: C
+                    type: threshold
+              for: 1m
   datasources:
     datasources.yaml:
       apiVersion: 1
       datasources:
         - name: Prometheus
           type: prometheus
-          url: http://prometheus-server.monitoring.svc
+          url: http://victoria-metrics-server.monitoring.svc.cluster.local:8428
           access: proxy
           isDefault: true
           uid: prometheus
