@@ -37,3 +37,15 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-wildcard
+      port: 443
+      protocol: HTTPS
+      hostname: "*.ehpc.io"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-ehpc-io-secret
+      allowedRoutes:
+        namespaces:
+          from: All

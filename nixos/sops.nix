@@ -15,4 +15,5 @@
   sops.secrets."ngf-root-ca-base64.key" = { };
   sops.secrets."telegram-bot-token" = { };
   sops.secrets."telegram-chat-id" = { };
+  sops.secrets."gandi-domain-pat" = { };
 }

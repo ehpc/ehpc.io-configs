@@ -9,6 +9,14 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
+      - dns01:
+          webhook:
+            groupName: acme.bwolf.me
+            solverName: gandi
+            config:
+              patSecretRef:
+                name: gandi-credentials
+                key: pat
       - http01:
           gatewayHTTPRoute:
             parentRefs:

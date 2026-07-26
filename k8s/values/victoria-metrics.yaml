@@ -71,6 +71,7 @@ server:
                 ]
               action: keep
               regex: default;kubernetes;https
+          metric_relabel_configs:
             - source_labels: [__name__]
               regex: "apiserver_.*|etcd_.*"
               action: drop

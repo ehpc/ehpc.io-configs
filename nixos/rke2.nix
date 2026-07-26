@@ -74,6 +74,19 @@ in
     '';
   };
 
+  sops.templates."gandi-credentials" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gandi-credentials
+        namespace: cert-manager
+      type: Opaque
+      stringData:
+        pat: ${config.sops.placeholder."gandi-domain-pat"}
+    '';
+  };
+
   sops.templates."tailscale-operator-oauth" = {
     content = ''
       apiVersion: v1
@@ -98,6 +111,9 @@ in
       "--write-kubeconfig-group=kube"
       "--write-kubeconfig-mode=644"
       "--tls-san=ehpc.io"
+      "--kube-apiserver-arg=default-watch-cache-size=50"
+      "--kube-apiserver-arg=max-requests-inflight=200"
+      "--kube-apiserver-arg=max-mutating-requests-inflight=100"
     ];
     manifests = { };
   };
@@ -171,6 +187,9 @@ in
       echo "[apply-k8s-manifests] Waiting for cert-manager-webhook..."
       kubectl -n cert-manager wait --for=condition=Available deploy/cert-manager-webhook --timeout=120s
 
+      echo "[apply-k8s-manifests] Applying dynamic manifest gandi-credentials"
+      kubectl apply -f "${config.sops.templates."gandi-credentials".path}"
+
       echo "[apply-k8s-manifests] Applying dynamic manifest nginx-gateway-ca"
       kubectl apply -f "${config.sops.templates."nginx-gateway-ca".path}"
 
@@ -191,6 +210,9 @@ in
 
       echo "[apply-k8s-manifests] Applying 100-ehpc-io"
       kubectl apply -f 100-ehpc-io
+
+      echo "[apply-k8s-manifests] Applying 110-dns-01-test"
+      kubectl apply -f 110-dns-01-test
 
       echo "[apply-k8s-manifests] Done"
     '';

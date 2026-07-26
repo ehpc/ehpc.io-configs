@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dns-01-test
+  namespace: default
+spec:
+  parentRefs:
+    - name: main-gateway
+      namespace: default
+  hostnames:
+    - "dns-01.ehpc.io"
+  rules:
+    - backendRefs:
+        - name: dns-01-test
+          port: 80

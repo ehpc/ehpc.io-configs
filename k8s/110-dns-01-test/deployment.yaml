@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-01-test
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dns-01-test
+  template:
+    metadata:
+      labels:
+        app: dns-01-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+      volumes:
+        - name: html
+          configMap:
+            name: dns-01-test-html

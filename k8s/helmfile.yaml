@@ -17,6 +17,8 @@ repositories:
     url: https://open-telemetry.github.io/opentelemetry-helm-charts
   - name: valkey
     url: https://valkey.io/valkey-helm/
+  - name: cert-manager-webhook-gandi
+    url: https://sintef.github.io/cert-manager-webhook-gandi
 
 releases:
   - name: cert-manager
@@ -25,6 +27,11 @@ releases:
     version: ~1.19.1
     values:
       - values/cert-manager.yaml
+  - name: cert-manager-webhook-gandi
+    namespace: cert-manager
+    chart: cert-manager-webhook-gandi/cert-manager-webhook-gandi
+    needs:
+      - cert-manager/cert-manager
   - name: metallb
     namespace: metallb-system
     chart: metallb/metallb

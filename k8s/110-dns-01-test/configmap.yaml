@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dns-01-test-html
+  namespace: default
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>dns-01.ehpc.io</title></head>
+    <body>
+      <h1>wildcard cert works</h1>
+    </body>
+    </html>
