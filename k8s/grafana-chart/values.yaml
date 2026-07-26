@@ -85,6 +85,46 @@ grafana:
                     refId: C
                     type: threshold
               for: 1m
+            - uid: cert-expiry-soon
+              title: TLS Certificate Expiring Soon
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 300
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    expr: (certmanager_certificate_expiration_timestamp_seconds{name="wildcard-ehpc-io-secret"} - time()) / 86400
+                    instant: true
+                    refId: A
+                - refId: C
+                  relativeTimeRange:
+                    from: 300
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                      - evaluator:
+                          params:
+                            - 30
+                          type: lt
+                        operator:
+                          type: and
+                        query:
+                          params:
+                            - A
+                        reducer:
+                          params: []
+                          type: min
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: A
+                    refId: C
+                    type: threshold
+              for: 1h
   datasources:
     datasources.yaml:
       apiVersion: 1
