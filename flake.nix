@@ -4,17 +4,14 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
 
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
   outputs =
@@ -36,12 +33,14 @@
         longhornctl = prev.callPackage ./pkgs/longhornctl.nix { };
         # rke2 1.34.5 in nixos-unstable is broken (boringcrypto Go build fails its own version check)
         rke2 = pkgsStable.rke2;
+        # helmfile: use upstream pre-built binary to avoid slow Go rebuilds when cache misses
+        helmfile = prev.callPackage ./pkgs/helmfile.nix { };
       };
 
-      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.ehpc-io-vps = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit domain;
+          inherit domain pkgsStable sops-nix;
         };
         modules = [
           { nixpkgs.overlays = [ self.overlays.default ]; }

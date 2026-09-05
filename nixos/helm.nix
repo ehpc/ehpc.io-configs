@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 let
   my-kubernetes-helm =
     with pkgs;
@@ -11,8 +11,14 @@ let
       ];
     };
 
-  my-helmfile = pkgs.helmfile-wrapped.override {
-    inherit (my-kubernetes-helm) pluginsDir;
+  my-helmfile = pkgs.symlinkJoin {
+    name = "helmfile-${pkgs.helmfile.version}";
+    paths = [ pkgs.helmfile ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/helmfile \
+        --set HELM_PLUGINS ${my-kubernetes-helm.pluginsDir}
+    '';
   };
 in
 

@@ -1,5 +1,10 @@
-{ ... }:
+{ pkgs, sops-nix, ... }:
 {
+  # Use sops-nix's pre-built binary (cached at cache.thalheim.io) instead of
+  # letting the module compile against our top-level unstable nixpkgs.
+  sops.package = sops-nix.packages.${pkgs.stdenv.hostPlatform.system}.sops-install-secrets;
+  sops.validationPackage = sops-nix.packages.${pkgs.stdenv.hostPlatform.system}.sops-install-secrets;
+
   sops.age.keyFile = "/etc/age/keys.txt";
   sops.defaultSopsFile = ../secrets.yaml;
   sops.secrets."ehpc-public-key" = { };
