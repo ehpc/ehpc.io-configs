@@ -52,7 +52,7 @@
           "Bash(jq *)"
         ];
         ask = [ ];
-        defaultMode = "default";
+        defaultMode = "auto";
         # Short, focused deny list. Anything else prompts (defaultMode = "default").
         # The sandbox + filesystem perms + sops are the real walls; this list just
         # blocks footguns you might rubber-stamp in a hurry.
