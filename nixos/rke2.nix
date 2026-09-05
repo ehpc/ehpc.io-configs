@@ -214,6 +214,9 @@ in
       echo "[apply-k8s-manifests] Applying 110-dns-01-test"
       kubectl apply -f 110-dns-01-test
 
+      echo "[apply-k8s-manifests] Applying 120-audio"
+      kubectl apply -f 120-audio
+
       echo "[apply-k8s-manifests] Done"
     '';
   };
