@@ -8,22 +8,33 @@ spec:
   selector:
     matchLabels:
       app: audio
+  # Recreate, not RollingUpdate: the single replica owns a ReadWriteOnce volume and
+  # opens a SQLite db on it, so surging a second pod would give two writers the same
+  # file. Costs a few seconds of downtime per rollout.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   template:
     metadata:
       labels:
         app: audio
     spec:
+      # The image runs as uid/gid 1000 (app); fsGroup makes the mounted volume
+      # group-writable by it.
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: audio-data
       containers:
         - name: audio
           image: ghcr.io/ehpc/ehpc.io-audio:prod
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
+          volumeMounts:
+            - name: data
+              mountPath: /data
           resources:
             requests:
               memory: "128Mi"
