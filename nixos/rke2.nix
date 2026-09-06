@@ -182,6 +182,15 @@ in
       kubectl apply -f "${config.sops.templates."tailscale-operator-oauth".path}"
 
       echo "[apply-k8s-manifests] Applying helmfile"
+      # cert-manager is installed by helmfile itself, so its webhook only exists from
+      # the second run onward. Whenever it does exist, wait for it before running
+      # helmfile: a webhook that is still starting has no endpoints, which fails other
+      # releases' Certificate/Issuer patches and aborts this script before any of the
+      # manifests below get applied.
+      if kubectl -n cert-manager get deploy cert-manager-webhook >/dev/null 2>&1; then
+        echo "[apply-k8s-manifests] Waiting for existing cert-manager-webhook..."
+        kubectl -n cert-manager wait --for=condition=Available deploy/cert-manager-webhook --timeout=120s
+      fi
       helmfile apply
 
       echo "[apply-k8s-manifests] Waiting for cert-manager-webhook..."
