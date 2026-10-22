@@ -12,6 +12,20 @@ A few secrets are managed by [sops-nix](https://github.com/Mic92/sops-nix).
 
 Rebuild from config `sudo nixos-rebuild switch --flake .#ehpc-io-vps`
 
+If an older generation fails with `error: public key is not valid`, rebuild once
+with the official NixOS cache and key explicitly selected. This bypasses the
+malformed key in the active configuration without disabling signature checks:
+
+```sh
+sudo nixos-rebuild switch --flake .#ehpc-io-vps \
+  --option substituters https://cache.nixos.org \
+  --option trusted-public-keys cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+```
+
+After activation, use the normal rebuild command again. The corrected
+`nix-community` key in `nixos/main.nix` comes from the
+[Cachix API](https://cachix.org/api/v1/cache/nix-community).
+
 ## Coding agents
 
 Home Manager installs `herdr`, `omp`, and `codex` for `ehpc`, using the same
