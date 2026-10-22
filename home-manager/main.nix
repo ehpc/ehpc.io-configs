@@ -1,8 +1,15 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  pkgsTools,
+  config,
+  ...
+}:
 
 {
   imports = [
     ./programs/claude
+    ./programs/omp.nix
+    (import ./programs/codex { inherit pkgs pkgsTools; })
   ];
 
   home.username = "ehpc";
@@ -12,6 +19,8 @@
     binutils
     git
     btop
+    pkgsTools.herdr
+    pkgsTools.playwright-cli
   ];
 
   home.stateVersion = "25.05";
