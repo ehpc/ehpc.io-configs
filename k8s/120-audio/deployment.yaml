@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: audio
   namespace: default
+  annotations:
+    audio.ehpc.io/release-sha: e5568c384a1427e52f30d4bcea00be3e3f237b7c
+    audio.ehpc.io/release-digest: sha256:e1161f0b1b35e03217f7d100a183506c1b418e9fb330fb9318fab747ae219de4
 spec:
   replicas: 1
   selector:
@@ -28,8 +31,24 @@ spec:
             claimName: audio-data
       containers:
         - name: audio
-          image: ghcr.io/ehpc/ehpc.io-audio:prod
+          image: ghcr.io/ehpc/ehpc.io-audio@sha256:e1161f0b1b35e03217f7d100a183506c1b418e9fb330fb9318fab747ae219de4
           imagePullPolicy: Always
+          env:
+            - name: MODAL_TOKEN_ID
+              valueFrom:
+                secretKeyRef:
+                  name: audio-modal-token
+                  key: token-id
+            - name: MODAL_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: audio-modal-token
+                  key: token-secret
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: audio-openrouter
+                  key: OPENROUTER_API_KEY
           ports:
             - containerPort: 8000
           volumeMounts:
@@ -40,7 +59,7 @@ spec:
               memory: "128Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
           livenessProbe:
             httpGet:

@@ -21,4 +21,7 @@
   sops.secrets."telegram-bot-token" = { };
   sops.secrets."telegram-chat-id" = { };
   sops.secrets."gandi-domain-pat" = { };
+  sops.secrets."modal-token-id" = { };
+  sops.secrets."modal-token-secret" = { };
+  sops.secrets."openrouter-api-key" = { };
 }

@@ -100,6 +100,33 @@ in
     '';
   };
 
+  sops.templates."audio-modal-token" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: audio-modal-token
+        namespace: default
+      type: Opaque
+      stringData:
+        token-id: "${config.sops.placeholder."modal-token-id"}"
+        token-secret: "${config.sops.placeholder."modal-token-secret"}"
+    '';
+  };
+
+  sops.templates."audio-openrouter" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: audio-openrouter
+        namespace: default
+      type: Opaque
+      stringData:
+        OPENROUTER_API_KEY: "${config.sops.placeholder."openrouter-api-key"}"
+    '';
+  };
+
   users.groups.kube = { };
 
   services.rke2 = {
@@ -122,14 +149,12 @@ in
 
   systemd.services.apply-k8s-manifests = {
     description = "Apply Kubernetes manifests from git repo + sops templates";
-    wants = [
-      "rke2-server.service"
-      "sops-nix.service"
-    ];
-    after = [
-      "rke2-server.service"
-      "sops-nix.service"
-    ];
+    wants = [ "rke2-server.service" ];
+    # By default sops-nix installs secrets during NixOS activation, before services
+    # start. Its optional systemd activation uses sops-install-secrets.service.
+    requires = lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
+    after = [ "rke2-server.service" ]
+      ++ lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
     wantedBy = [ "multi-user.target" ];
 
     serviceConfig = {
@@ -143,6 +168,11 @@ in
 
     script = ''
       set -euo pipefail
+
+      if [[ ! -r "${config.sops.templates."audio-modal-token".path}" || ! -r "${config.sops.templates."audio-openrouter".path}" ]]; then
+        echo "[apply-k8s-manifests] Audio Secret templates are not ready; refusing to apply manifests." >&2
+        exit 1
+      fi
 
       echo KUBECONFIG=$KUBECONFIG
 
@@ -222,6 +252,12 @@ in
 
       echo "[apply-k8s-manifests] Applying 110-dns-01-test"
       kubectl apply -f 110-dns-01-test
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest audio-modal-token"
+      kubectl apply -f "${config.sops.templates."audio-modal-token".path}"
+
+      echo "[apply-k8s-manifests] Applying dynamic manifest audio-openrouter"
+      kubectl apply -f "${config.sops.templates."audio-openrouter".path}"
 
       echo "[apply-k8s-manifests] Applying 120-audio"
       kubectl apply -f 120-audio
