@@ -26,6 +26,17 @@ After activation, use the normal rebuild command again. The corrected
 `nix-community` key in `nixos/main.nix` comes from the
 [Cachix API](https://cachix.org/api/v1/cache/nix-community).
 
+## GitHub SSH key caching
+
+`nixos/ssh.nix` starts a user SSH agent and configures GitHub connections to use
+`~/.ssh/github` with `AddKeysToAgent yes`. After applying the configuration,
+start a fresh login session so the shell inherits `SSH_AUTH_SOCK`.
+
+The first GitHub SSH connection prompts for the key's passphrase and caches the
+unlocked key in the agent; subsequent connections using that agent do not prompt.
+A new agent session requires unlocking again. Start coding agents from that same
+shell so they can use the cached key.
+
 ## Audio credentials
 
 The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from

@@ -16,6 +16,13 @@
   };
   services.sshd.enable = true;
 
-  programs.ssh.startAgent = true;
+  programs.ssh = {
+    startAgent = true;
+    extraConfig = ''
+      Host github.com
+        IdentityFile ~/.ssh/github
+        AddKeysToAgent yes
+    '';
+  };
   security.pam.sshAgentAuth.enable = true;
 }
