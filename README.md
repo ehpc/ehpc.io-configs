@@ -8,6 +8,9 @@ It's based on [flakes](https://wiki.nixos.org/wiki/Flakes).
 
 A few secrets are managed by [sops-nix](https://github.com/Mic92/sops-nix).
 
+System packages in `nixos/system-packages.nix` include the OpenSSL CLI for
+certificate inspection and TLS diagnostics.
+
 ## Commands
 
 Before a planned rebuild, record the current generation, review all pending
@@ -54,24 +57,44 @@ shell so they can use the cached key.
 
 The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from
 `default/audio-modal-token`, and `OPENROUTER_API_KEY` from
-`default/audio-openrouter`. The source of truth is the existing SOPS-encrypted
-`secrets.yaml`: sops-nix renders both Kubernetes Secrets, and
-`apply-k8s-manifests` applies them before the audio Deployment.
+`default/audio-openrouter`. The planned invite-only release additionally uses
+`AUTH_OTP_SECRET` and `AUTH_INVITE_SECRET` from `default/audio-auth`. Its new
+configuration is staged locally, **not yet installed in this checkout or
+activated**. After approved installation, sops-nix will render those Secrets
+from encrypted `secrets.yaml` before the audio Deployment.
 
-For initial provisioning, all three encrypted top-level keys must exist:
-`modal-token-id`, `modal-token-secret`, and `openrouter-api-key`. The current
-deployment is already running; edit `secrets.yaml` privately with `sops` and the
-existing recipients when rotation is needed. Never print or paste credentials, commit
-plaintext or dummy values, or substitute developer credentials. Existing values
-are managed separately from this configuration.
+Before activating this configuration, all five encrypted top-level keys must
+exist: `modal-token-id`, `modal-token-secret`, `openrouter-api-key`,
+`audio-auth-otp-secret`, and `audio-auth-invite-secret`. The two new auth values
+must be distinct, stable, cryptographically random, and at least 32 bytes each
+(for example, 64 hexadecimal characters per key).
+The authorized root operator can add them with
+`sudo env SOPS_AGE_KEY_FILE=/etc/age/keys.txt sops /home/ehpc/ehpc.io-configs/secrets.yaml`; edit privately using the
+existing recipients. Never print or paste credentials, commit plaintext or
+dummy values, or substitute developer credentials.
 
-sops-nix installs secrets before service startup. The manifest apply service
-waits for secret installation when applicable and refuses to apply manifests if
-either rendered audio Secret is unreadable. Do not apply the Deployment alone
-before both Secrets are ready. Rotation takes effect in running containers only
-after an explicitly approved Deployment restart. The CPU web deployment still
-uses Modal credentials for GPU workloads; manage other Modal-side secrets according
-to the workloads that use them.
+In the planned configuration, sops-nix installs secrets before service startup.
+The apply service will refuse missing/unreadable templates, short/equal auth
+keys, or an unavailable `audio-mail` group before applying audio resources.
+Do not apply the new Deployment alone before the three Secrets are ready.
+Rotation takes effect in running containers only after an explicitly approved
+Deployment restart. GPU workloads
+still require the Modal credentials.
+
+The proposed audio pod mounts `/run/audio-mail` as a read-only directory; an
+apply-time renderer obtains the host's actual `audio-mail` GID and preserves the
+pod's existing groups and PVC fsGroup. The proposed gateway-only ingress
+NetworkPolicy must be applied and verified before the new audio Deployment.
+The gateway subnet is the observed node pod CIDR `10.42.0.0/24`; this trust is safe
+only while the policy is enforced and no other policy opens audio ingress.
+An isolated equivalent Canal policy probe allowed the gateway, denied a
+nonmatching pod, and kept kubelet readiness healthy; it did not apply a policy
+to the actual audio pod. The default service account could not create or patch
+pods. Before production activation recheck the subnet, labels, permissions and
+effective policy, and verify gateway traffic and kubelet health probes. NGINX
+overwrites `X-Real-IP`; the app ignores incoming `X-Forwarded-For`, and its
+Uvicorn entrypoint must retain the real network peer. Until these checks pass,
+per-client IP limits are unverified and auth rollout is blocked.
 
 The checked-in audio Deployment requests `128Mi`/`100m` and limits `1Gi`/`1`
 CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
@@ -79,10 +102,8 @@ CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
 ## Outbound authentication mail
 
 The NixOS mail configuration in `nixos/mail.nix` is active. On 2026-11-09,
-Postfix, OpenDKIM, and `audio-mail.socket` were observed active. This is mail
-infrastructure only: the
-audio application has no SMTP Unix-socket adapter, mount, or group access yet;
-invitation and email-OTP authentication are not implemented.
+Postfix, OpenDKIM, and `audio-mail.socket` were observed active. The application
+adapter and invite-only access are implemented and tested locally but not deployed.
 
 The sender is `no-reply@auth.ehpc.io`, the envelope sender is
 `bounce@auth.ehpc.io`, the signing domain is `auth.ehpc.io`, and the outbound
@@ -94,10 +115,10 @@ unless another receiver is configured. Do not add an `auth.ehpc.io` MX until
 bounce intake is verified.
 
 Trusted submission uses `/run/audio-mail/submit.sock` (`root:audio-mail`, mode
-`0660`) through a private Postfix socket; no public submission port or trusted
-pod CIDR is configured. A future pod must be explicitly granted the required
-mount and group, and use an SMTP-over-Unix-socket adapter: pod loopback is not
-host loopback. The authorized client must supply the exact bare header
+`0660`) through a private Postfix socket; there is no public submission port.
+The prepared pod uses the directory mount and runtime group described above;
+pod loopback is not host loopback. The authorized client must supply the exact
+bare header
 `From: no-reply@auth.ehpc.io`; a wrong present From is rejected, but a missing
 From can be accepted unsigned by the pinned OpenDKIM. Test the client contract.
 Outbound delivery requires STARTTLS; this does not establish recipient identity

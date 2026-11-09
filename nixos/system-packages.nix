@@ -7,6 +7,7 @@
     htop
     curl
     wget
+    openssl
     age
     sops
     jq
