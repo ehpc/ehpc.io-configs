@@ -127,6 +127,20 @@ in
     '';
   };
 
+  sops.templates."audio-auth" = {
+    content = ''
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: audio-auth
+        namespace: default
+      type: Opaque
+      stringData:
+        AUTH_OTP_SECRET: "${config.sops.placeholder."audio-auth-otp-secret"}"
+        AUTH_INVITE_SECRET: "${config.sops.placeholder."audio-auth-invite-secret"}"
+    '';
+  };
+
   users.groups.kube = { };
 
   services.rke2 = {
@@ -169,10 +183,19 @@ in
     script = ''
       set -euo pipefail
 
-      if [[ ! -r "${config.sops.templates."audio-modal-token".path}" || ! -r "${config.sops.templates."audio-openrouter".path}" ]]; then
+      if [[ ! -r "${config.sops.templates."audio-modal-token".path}" || ! -r "${config.sops.templates."audio-openrouter".path}" || ! -r "${config.sops.templates."audio-auth".path}" || ! -r "${config.sops.secrets."audio-auth-otp-secret".path}" || ! -r "${config.sops.secrets."audio-auth-invite-secret".path}" ]]; then
         echo "[apply-k8s-manifests] Audio Secret templates are not ready; refusing to apply manifests." >&2
         exit 1
       fi
+
+      # Check only key validity, never emit their contents or put them in argv.
+      ${pkgs.python3.withPackages (ps: [ ps.pyyaml ])}/bin/python3 ${./audio-render.py} --check-secrets \
+        "${config.sops.secrets."audio-auth-otp-secret".path}" "${config.sops.secrets."audio-auth-invite-secret".path}" \
+        || { echo "[apply-k8s-manifests] Audio auth keys must be distinct and at least 32 bytes." >&2; exit 1; }
+      audio_mail_group=$(getent group audio-mail) || { echo "[apply-k8s-manifests] audio-mail group unavailable." >&2; exit 1; }
+      IFS=: read -r audio_mail_name _ audio_mail_gid _ <<< "$audio_mail_group"
+      [[ "$audio_mail_name" == audio-mail && "$audio_mail_gid" =~ ^[0-9]+$ && "$audio_mail_gid" != 0 && -d /run/audio-mail ]] \
+        || { echo "[apply-k8s-manifests] Invalid audio-mail group or socket directory." >&2; exit 1; }
 
       echo KUBECONFIG=$KUBECONFIG
 
@@ -253,14 +276,30 @@ in
       echo "[apply-k8s-manifests] Applying 110-dns-01-test"
       kubectl apply -f 110-dns-01-test
 
+      # Resolve the host's dynamically allocated mail group for this apply only.
+      # Preserve fsGroup and any existing supplemental groups.
+      audio_tmp=$(mktemp -d)
+      trap 'rm -rf "$audio_tmp"' EXIT
+      cp -R 120-audio "$audio_tmp/120-audio"
+      ${pkgs.python3.withPackages (ps: [ ps.pyyaml ])}/bin/python3 ${./audio-render.py} \
+        120-audio/deployment.yaml "$audio_tmp/120-audio/deployment.yaml" "$audio_mail_gid"
+
+      # Apply the ingress restriction before the app can trust forwarded IPs.
+      # Enforcement must also be verified as a separate rollout prerequisite.
+      kubectl apply -f 120-audio/network-policy.yaml
+      rm "$audio_tmp/120-audio/network-policy.yaml"
+
       echo "[apply-k8s-manifests] Applying dynamic manifest audio-modal-token"
       kubectl apply -f "${config.sops.templates."audio-modal-token".path}"
 
       echo "[apply-k8s-manifests] Applying dynamic manifest audio-openrouter"
       kubectl apply -f "${config.sops.templates."audio-openrouter".path}"
 
-      echo "[apply-k8s-manifests] Applying 120-audio"
-      kubectl apply -f 120-audio
+      echo "[apply-k8s-manifests] Applying dynamic manifest audio-auth"
+      kubectl apply -f "${config.sops.templates."audio-auth".path}"
+
+      echo "[apply-k8s-manifests] Applying 120-audio with runtime mail group"
+      kubectl apply -f "$audio_tmp/120-audio"
 
       echo "[apply-k8s-manifests] Done"
     '';

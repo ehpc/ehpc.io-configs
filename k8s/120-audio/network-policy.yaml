@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: audio-gateway-only
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: audio
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ngf
+              app.kubernetes.io/managed-by: ngf-nginx
+              app.kubernetes.io/name: main-gateway-nginx
+              gateway.networking.k8s.io/gateway-name: main-gateway
+      ports:
+        - protocol: TCP
+          port: 8000

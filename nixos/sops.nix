@@ -24,4 +24,6 @@
   sops.secrets."modal-token-id" = { };
   sops.secrets."modal-token-secret" = { };
   sops.secrets."openrouter-api-key" = { };
+  sops.secrets."audio-auth-otp-secret" = { };
+  sops.secrets."audio-auth-invite-secret" = { };
 }

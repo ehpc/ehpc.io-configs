@@ -30,6 +30,11 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: audio-data
+        # Mount the directory, not the socket inode, so socket restarts remain visible.
+        - name: audio-mail
+          hostPath:
+            path: /run/audio-mail
+            type: Directory
       containers:
         - name: audio
           image: ghcr.io/ehpc/ehpc.io-audio@sha256:b3975c7f740224d1b8180c98577aab5e54308ae1d39720aac44848e3b533af0d
@@ -37,6 +42,26 @@ spec:
           env:
             - name: MODAL_APP_NAME
               value: audio-inference-v3
+            - name: AUTH_ORIGIN
+              value: https://audio.ehpc.io
+            - name: AUTH_ADMIN_EMAIL
+              value: ehpc@ehpc.io
+            - name: AUTH_SMTP_SOCKET
+              value: /run/audio-mail/submit.sock
+            # Valid only while gateway-only ingress is enforced and this node
+            # retains its verified gateway pod subnet; recheck before rollout.
+            - name: AUTH_TRUSTED_PROXY_CIDRS
+              value: "10.42.0.0/24"
+            - name: AUTH_OTP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: audio-auth
+                  key: AUTH_OTP_SECRET
+            - name: AUTH_INVITE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: audio-auth
+                  key: AUTH_INVITE_SECRET
             - name: MODAL_TOKEN_ID
               valueFrom:
                 secretKeyRef:
@@ -57,6 +82,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: audio-mail
+              mountPath: /run/audio-mail
+              readOnly: true
           resources:
             requests:
               memory: "128Mi"

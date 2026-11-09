@@ -54,24 +54,31 @@ shell so they can use the cached key.
 
 The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from
 `default/audio-modal-token`, and `OPENROUTER_API_KEY` from
-`default/audio-openrouter`. The source of truth is the existing SOPS-encrypted
-`secrets.yaml`: sops-nix renders both Kubernetes Secrets, and
-`apply-k8s-manifests` applies them before the audio Deployment.
+`default/audio-openrouter`. Invite-only access additionally requires independent
+`AUTH_OTP_SECRET` and `AUTH_INVITE_SECRET` values from `default/audio-auth`.
+The existing SOPS-encrypted `secrets.yaml` is the source of truth; the prepared
+configuration has not yet been activated or deployed.
 
-For initial provisioning, all three encrypted top-level keys must exist:
-`modal-token-id`, `modal-token-secret`, and `openrouter-api-key`. The current
-deployment is already running; edit `secrets.yaml` privately with `sops` and the
-existing recipients when rotation is needed. Never print or paste credentials, commit
-plaintext or dummy values, or substitute developer credentials. Existing values
-are managed separately from this configuration.
+Five encrypted top-level keys must exist: `modal-token-id`,
+`modal-token-secret`, `openrouter-api-key`, `audio-auth-otp-secret`, and
+`audio-auth-invite-secret`. The two auth secrets must be distinct stable
+CSPRNG values of at least 32 bytes (for example, 64 hexadecimal characters).
+An authorized root operator can edit them privately using
+`sudo env SOPS_AGE_KEY_FILE=/etc/age/keys.txt sops /home/ehpc/ehpc.io-configs/secrets.yaml`.
+Never print credentials, commit plaintext or dummy values, or use developer
+credentials. Retain stable existing keys and back them up securely.
 
-sops-nix installs secrets before service startup. The manifest apply service
-waits for secret installation when applicable and refuses to apply manifests if
-either rendered audio Secret is unreadable. Do not apply the Deployment alone
-before both Secrets are ready. Rotation takes effect in running containers only
-after an explicitly approved Deployment restart. The CPU web deployment still
-uses Modal credentials for GPU workloads; manage other Modal-side secrets according
-to the workloads that use them.
+The prepared apply service refuses missing/unreadable templates, short or equal
+auth keys, and unavailable `audio-mail` group before applying audio resources.
+Its renderer resolves the host's actual group ID and adds it to supplemental
+groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
+directory, not a socket inode. The gateway-only ingress NetworkPolicy must be
+enforced before trusting the observed gateway node subnet `10.42.0.0/24`.
+An isolated equivalent policy test allowed the gateway, denied a nonmatching
+pod and preserved kubelet readiness; it did not test the actual audio pod's
+policy or socket mount. Recheck subnet, labels, permissions, additive policies,
+gateway forwarding, kubelet probes and socket connectivity during the approved
+cutover. Production activation still requires a verified image and root access.
 
 The checked-in audio Deployment requests `128Mi`/`100m` and limits `1Gi`/`1`
 CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
@@ -79,10 +86,8 @@ CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
 ## Outbound authentication mail
 
 The NixOS mail configuration in `nixos/mail.nix` is active. On 2026-11-09,
-Postfix, OpenDKIM, and `audio-mail.socket` were observed active. This is mail
-infrastructure only: the
-audio application has no SMTP Unix-socket adapter, mount, or group access yet;
-invitation and email-OTP authentication are not implemented.
+Postfix, OpenDKIM, and `audio-mail.socket` were observed active. The application
+adapter and invite-only access are implemented and tested locally, not deployed.
 
 The sender is `no-reply@auth.ehpc.io`, the envelope sender is
 `bounce@auth.ehpc.io`, the signing domain is `auth.ehpc.io`, and the outbound
@@ -94,10 +99,10 @@ unless another receiver is configured. Do not add an `auth.ehpc.io` MX until
 bounce intake is verified.
 
 Trusted submission uses `/run/audio-mail/submit.sock` (`root:audio-mail`, mode
-`0660`) through a private Postfix socket; no public submission port or trusted
-pod CIDR is configured. A future pod must be explicitly granted the required
-mount and group, and use an SMTP-over-Unix-socket adapter: pod loopback is not
-host loopback. The authorized client must supply the exact bare header
+`0660`) through a private Postfix socket; there is no public submission port.
+The prepared pod uses the directory mount and runtime group described above;
+pod loopback is not host loopback. The authorized client must supply the exact
+bare header
 `From: no-reply@auth.ehpc.io`; a wrong present From is rejected, but a missing
 From can be accepted unsigned by the pinned OpenDKIM. Test the client contract.
 Outbound delivery requires STARTTLS; this does not establish recipient identity
