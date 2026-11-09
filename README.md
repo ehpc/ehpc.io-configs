@@ -10,33 +10,47 @@ A few secrets are managed by [sops-nix](https://github.com/Mic92/sops-nix).
 
 ## Commands
 
-Before a planned rebuild, record the current generation, review all pending
-changes and resource headroom, and choose a maintenance window: activation may
-restart services. The checkout path includes untracked files; a Git flake ignores
-new untracked files. Commit intended modules, tests, and documentation to the
-repository when authorized, but never commit runtime keys or other secrets.
-Limit build concurrency:
+Before any planned activation, record the current system generation, review
+all pending user changes and resource headroom, and choose a maintenance
+window: activation may restart services. This branch is **not activated**.
+Verify that the reviewed local build source includes all intended live-checkout
+changes and that its deployment manifest and image pin match the approved
+release. Never overwrite unrelated staged work or build from an older branch
+while claiming it includes newer user changes.
+The apply service reads `/home/ehpc/ehpc.io-configs/k8s` at runtime; those
+live manifests must match the reviewed build source and final image pin before
+activation. The isolated auth worktree is not the live path. Take a fresh,
+consistent SQLite backup immediately before the authenticated cutover.
+
+Build on a development workstation or CI, never on the 4 GiB VPS. From the
+reviewed configuration checkout, limit build concurrency, then copy the actual
+resulting closure:
 
 ```sh
-readlink /nix/var/nix/profiles/system
-sudo nixos-rebuild switch --max-jobs 1 --cores 2 --flake path:/home/ehpc/ehpc.io-configs#ehpc-io-vps
+nix build --max-jobs 1 --cores 2 'path:'"$PWD"'#nixosConfigurations.ehpc-io-vps.config.system.build.toplevel' &&
+system=$(readlink -f result) &&
+nix copy --to ssh-ng://ehpc-io-vps "$system"
 ```
 
-Run VM regressions and `nix flake check` on a development machine or CI, not
-on the 4 GiB production VPS.
-
-If an older generation fails with `error: public key is not valid`, rebuild once
-with the official NixOS cache and key explicitly selected. This bypasses the
-malformed key in the active configuration without disabling signature checks:
+After an independently approved cutover and confirming the closure is present,
+an authorized root operator may set the remote system profile and switch to
+that exact copied store path. This invokes no build or evaluation on the VPS:
 
 ```sh
-sudo nixos-rebuild switch --max-jobs 1 --cores 2 --flake path:/home/ehpc/ehpc.io-configs#ehpc-io-vps \
+ssh -t ehpc-io-vps "sudo nix-env --profile /nix/var/nix/profiles/system --set '$system' && sudo '$system/bin/switch-to-configuration' switch"
+```
+
+If a local build fails with `error: public key is not valid`, build locally
+using the official NixOS cache and key without disabling signature checks:
+
+```sh
+nix build --max-jobs 1 --cores 2 'path:'"$PWD"'#nixosConfigurations.ehpc-io-vps.config.system.build.toplevel' \
   --option substituters https://cache.nixos.org \
   --option trusted-public-keys cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
 ```
 
-After activation, use the normal rebuild command again. The corrected
-`nix-community` key in `nixos/main.nix` comes from the
+Run VM regressions and `nix flake check` on a development machine or CI too.
+The corrected `nix-community` key in `nixos/main.nix` comes from the
 [Cachix API](https://cachix.org/api/v1/cache/nix-community).
 
 ## GitHub SSH key caching
