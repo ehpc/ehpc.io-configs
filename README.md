@@ -26,6 +26,16 @@ and NetworkPolicy are captured from `nixos/audio-deployment.yaml` and
 common manifests and the built source match the reviewed release before
 activation. Take a fresh consistent SQLite backup before the auth cutover.
 
+Save the original live Deployment specification and immutable image pin as
+well as the database backup. A pre-auth Nix generation's apply unit does not
+restore the Deployment after its legacy manifest was moved, and `kubectl
+apply` without prune retains existing Secrets and NetworkPolicies. Recovery
+requires a separately reviewed Kubernetes rollback or forward fix; do not
+assume a Nix generation switch reverses the application. If an old anonymous
+image is ever restored, keep public access closed. Never restore an old
+database over newly accepted work. Later Nix generations contain the Deployment
+in their closures; explicitly rerun the apply unit after an approved rollback.
+
 Build on a development workstation or CI, never on the 4 GiB VPS. From the
 reviewed configuration checkout, limit build concurrency, then copy the actual
 resulting closure:
