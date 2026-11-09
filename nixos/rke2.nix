@@ -150,7 +150,7 @@ in
       "--disable=traefik"
       "--disable=rke2-ingress-nginx"
       "--write-kubeconfig-group=kube"
-      "--write-kubeconfig-mode=644"
+      "--write-kubeconfig-mode=640"
       "--tls-san=ehpc.io"
       "--kube-apiserver-arg=default-watch-cache-size=50"
       "--kube-apiserver-arg=max-requests-inflight=200"
@@ -166,8 +166,8 @@ in
     wants = [ "rke2-server.service" ];
     # By default sops-nix installs secrets during NixOS activation, before services
     # start. Its optional systemd activation uses sops-install-secrets.service.
-    requires = lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
-    after = [ "rke2-server.service" ]
+    requires = [ "audio-mail.socket" ] ++ lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
+    after = [ "rke2-server.service" "audio-mail.socket" ]
       ++ lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
     wantedBy = [ "multi-user.target" ];
 

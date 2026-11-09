@@ -102,6 +102,10 @@ credentials. Retain stable existing keys and back them up securely.
 
 The prepared apply service refuses missing/unreadable templates, short or equal
 auth keys, and unavailable `audio-mail` group before applying audio resources.
+The apply service requires and starts after `audio-mail.socket`, so a failed
+mail socket prevents the auth workload from being applied. Upon activation the
+RKE2 kubeconfig is configured as `0640` rather than world-readable; `ehpc`
+retains operator access through its membership in the `kube` group.
 Its renderer resolves the host's actual group ID and adds it to supplemental
 groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
 directory, not a socket inode. The gateway-only ingress NetworkPolicy must be
