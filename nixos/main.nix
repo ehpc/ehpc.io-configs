@@ -67,6 +67,7 @@
     ./ssh.nix
     ./users.nix
     ./firewall.nix
+    ./mail.nix
     ./system-packages.nix
     ./nfs.nix
     ./tailscale.nix

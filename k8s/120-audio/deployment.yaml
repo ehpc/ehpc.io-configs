@@ -4,8 +4,8 @@ metadata:
   name: audio
   namespace: default
   annotations:
-    audio.ehpc.io/release-sha: e5568c384a1427e52f30d4bcea00be3e3f237b7c
-    audio.ehpc.io/release-digest: sha256:e1161f0b1b35e03217f7d100a183506c1b418e9fb330fb9318fab747ae219de4
+    audio.ehpc.io/release-sha: 3b78cc1d02321d87e45964956194c4a3566869f5
+    audio.ehpc.io/release-digest: sha256:b3975c7f740224d1b8180c98577aab5e54308ae1d39720aac44848e3b533af0d
 spec:
   replicas: 1
   selector:
@@ -21,6 +21,7 @@ spec:
       labels:
         app: audio
     spec:
+      terminationGracePeriodSeconds: 300
       # The image runs as uid/gid 1000 (app); fsGroup makes the mounted volume
       # group-writable by it.
       securityContext:
@@ -31,9 +32,11 @@ spec:
             claimName: audio-data
       containers:
         - name: audio
-          image: ghcr.io/ehpc/ehpc.io-audio@sha256:e1161f0b1b35e03217f7d100a183506c1b418e9fb330fb9318fab747ae219de4
+          image: ghcr.io/ehpc/ehpc.io-audio@sha256:b3975c7f740224d1b8180c98577aab5e54308ae1d39720aac44848e3b533af0d
           imagePullPolicy: Always
           env:
+            - name: MODAL_APP_NAME
+              value: audio-inference-v3
             - name: MODAL_TOKEN_ID
               valueFrom:
                 secretKeyRef:
@@ -60,7 +63,7 @@ spec:
               cpu: "100m"
             limits:
               memory: "1Gi"
-              cpu: "500m"
+              cpu: "1"
           livenessProbe:
             httpGet:
               path: /health

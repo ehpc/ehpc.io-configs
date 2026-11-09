@@ -49,6 +49,8 @@
         helmfile = prev.callPackage ./pkgs/helmfile.nix { };
       };
 
+      checks.${system}.mail = import ./tests/mail.nix { pkgs = nixpkgs.legacyPackages.${system}; };
+
       nixosConfigurations.ehpc-io-vps = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
