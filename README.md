@@ -13,33 +13,52 @@ certificate inspection and TLS diagnostics.
 
 ## Commands
 
-Before a planned rebuild, record the current generation, review all pending
-changes and resource headroom, and choose a maintenance window: activation may
-restart services. The checkout path includes untracked files; a Git flake ignores
-new untracked files. Commit intended modules, tests, and documentation to the
-repository when authorized, but never commit runtime keys or other secrets.
-Limit build concurrency:
+Before any planned activation, record the current system generation, review
+all pending user changes and resource headroom, and choose a maintenance
+window: activation may restart services. The prepared auth configuration is
+**not activated**. Verify that the reviewed local build source includes all
+intended live-checkout changes and that `nixos/audio-deployment.yaml` has the
+approved release image and annotations. Never overwrite unrelated staged work.
+The apply service reads common manifests from
+`/home/ehpc/ehpc.io-configs/k8s` at runtime, but the canonical audio Deployment
+and NetworkPolicy are captured from `nixos/audio-deployment.yaml` and
+`nixos/audio-network-policy.yaml` in the built Nix closure. Ensure the live
+common manifests and the built source match the reviewed release before
+activation. Take a fresh consistent SQLite backup before the auth cutover.
+
+Build on a development workstation or CI, never on the 4 GiB VPS. From the
+reviewed configuration checkout, limit build concurrency, then copy the actual
+resulting closure:
 
 ```sh
-readlink /nix/var/nix/profiles/system
-sudo nixos-rebuild switch --max-jobs 1 --cores 2 --flake path:/home/ehpc/ehpc.io-configs#ehpc-io-vps
+nix build --max-jobs 1 --cores 2 'path:'"$PWD"'#nixosConfigurations.ehpc-io-vps.config.system.build.toplevel' &&
+system=$(readlink -f result) &&
+nix copy --to ssh-ng://ehpc-io-vps "$system"
 ```
 
-Run VM regressions and `nix flake check` on a development machine or CI, not
-on the 4 GiB production VPS.
-
-If an older generation fails with `error: public key is not valid`, rebuild once
-with the official NixOS cache and key explicitly selected. This bypasses the
-malformed key in the active configuration without disabling signature checks:
+After an independently approved cutover and confirming the closure is present,
+an authorized root operator may set the remote system profile and switch to
+that exact copied store path. This invokes no build or evaluation on the VPS:
 
 ```sh
-sudo nixos-rebuild switch --max-jobs 1 --cores 2 --flake path:/home/ehpc/ehpc.io-configs#ehpc-io-vps \
+ssh -t ehpc-io-vps "sudo nix-env --profile /nix/var/nix/profiles/system --set '$system' && sudo '$system/bin/switch-to-configuration' switch"
+```
+
+After switching, explicitly start the new `apply-k8s-manifests.service` once
+the SOPS templates are ready; an inactive oneshot is not guaranteed to rerun
+on switch. Verify the unit result, Secret metadata, pod image and readiness.
+
+If a local build fails with `error: public key is not valid`, build locally
+using the official NixOS cache and key without disabling signature checks:
+
+```sh
+nix build --max-jobs 1 --cores 2 'path:'"$PWD"'#nixosConfigurations.ehpc-io-vps.config.system.build.toplevel' \
   --option substituters https://cache.nixos.org \
   --option trusted-public-keys cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
 ```
 
-After activation, use the normal rebuild command again. The corrected
-`nix-community` key in `nixos/main.nix` comes from the
+Run VM regressions and `nix flake check` on a development machine or CI too.
+The corrected `nix-community` key in `nixos/main.nix` comes from the
 [Cachix API](https://cachix.org/api/v1/cache/nix-community).
 
 ## GitHub SSH key caching
@@ -57,44 +76,31 @@ shell so they can use the cached key.
 
 The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from
 `default/audio-modal-token`, and `OPENROUTER_API_KEY` from
-`default/audio-openrouter`. The planned invite-only release additionally uses
-`AUTH_OTP_SECRET` and `AUTH_INVITE_SECRET` from `default/audio-auth`. Its new
-configuration is staged locally, **not yet installed in this checkout or
-activated**. After approved installation, sops-nix will render those Secrets
-from encrypted `secrets.yaml` before the audio Deployment.
+`default/audio-openrouter`. Invite-only access additionally requires independent
+`AUTH_OTP_SECRET` and `AUTH_INVITE_SECRET` values from `default/audio-auth`.
+The existing SOPS-encrypted `secrets.yaml` is the source of truth; the prepared
+configuration has not yet been activated or deployed.
 
-Before activating this configuration, all five encrypted top-level keys must
-exist: `modal-token-id`, `modal-token-secret`, `openrouter-api-key`,
-`audio-auth-otp-secret`, and `audio-auth-invite-secret`. The two new auth values
-must be distinct, stable, cryptographically random, and at least 32 bytes each
-(for example, 64 hexadecimal characters per key).
-The authorized root operator can add them with
-`sudo env SOPS_AGE_KEY_FILE=/etc/age/keys.txt sops /home/ehpc/ehpc.io-configs/secrets.yaml`; edit privately using the
-existing recipients. Never print or paste credentials, commit plaintext or
-dummy values, or substitute developer credentials.
+Five encrypted top-level keys must exist: `modal-token-id`,
+`modal-token-secret`, `openrouter-api-key`, `audio-auth-otp-secret`, and
+`audio-auth-invite-secret`. The two auth secrets must be distinct stable
+CSPRNG values of at least 32 bytes (for example, 64 hexadecimal characters).
+An authorized root operator can edit them privately using
+`sudo env SOPS_AGE_KEY_FILE=/etc/age/keys.txt sops /home/ehpc/ehpc.io-configs/secrets.yaml`.
+Never print credentials, commit plaintext or dummy values, or use developer
+credentials. Retain stable existing keys and back them up securely.
 
-In the planned configuration, sops-nix installs secrets before service startup.
-The apply service will refuse missing/unreadable templates, short/equal auth
-keys, or an unavailable `audio-mail` group before applying audio resources.
-Do not apply the new Deployment alone before the three Secrets are ready.
-Rotation takes effect in running containers only after an explicitly approved
-Deployment restart. GPU workloads
-still require the Modal credentials.
-
-The proposed audio pod mounts `/run/audio-mail` as a read-only directory; an
-apply-time renderer obtains the host's actual `audio-mail` GID and preserves the
-pod's existing groups and PVC fsGroup. The proposed gateway-only ingress
-NetworkPolicy must be applied and verified before the new audio Deployment.
-The gateway subnet is the observed node pod CIDR `10.42.0.0/24`; this trust is safe
-only while the policy is enforced and no other policy opens audio ingress.
-An isolated equivalent Canal policy probe allowed the gateway, denied a
-nonmatching pod, and kept kubelet readiness healthy; it did not apply a policy
-to the actual audio pod. The default service account could not create or patch
-pods. Before production activation recheck the subnet, labels, permissions and
-effective policy, and verify gateway traffic and kubelet health probes. NGINX
-overwrites `X-Real-IP`; the app ignores incoming `X-Forwarded-For`, and its
-Uvicorn entrypoint must retain the real network peer. Until these checks pass,
-per-client IP limits are unverified and auth rollout is blocked.
+The prepared apply service refuses missing/unreadable templates, short or equal
+auth keys, and unavailable `audio-mail` group before applying audio resources.
+Its renderer resolves the host's actual group ID and adds it to supplemental
+groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
+directory, not a socket inode. The gateway-only ingress NetworkPolicy must be
+enforced before trusting the observed gateway node subnet `10.42.0.0/24`.
+An isolated equivalent policy test allowed the gateway, denied a nonmatching
+pod and preserved kubelet readiness; it did not test the actual audio pod's
+policy or socket mount. Recheck subnet, labels, permissions, additive policies,
+gateway forwarding, kubelet probes and socket connectivity during the approved
+cutover. Production activation still requires a verified image and root access.
 
 The checked-in audio Deployment requests `128Mi`/`100m` and limits `1Gi`/`1`
 CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
@@ -103,7 +109,7 @@ CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
 
 The NixOS mail configuration in `nixos/mail.nix` is active. On 2026-11-09,
 Postfix, OpenDKIM, and `audio-mail.socket` were observed active. The application
-adapter and invite-only access are implemented and tested locally but not deployed.
+adapter and invite-only access are implemented and tested locally, not deployed.
 
 The sender is `no-reply@auth.ehpc.io`, the envelope sender is
 `bounce@auth.ehpc.io`, the signing domain is `auth.ehpc.io`, and the outbound
