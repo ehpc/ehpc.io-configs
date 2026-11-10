@@ -119,6 +119,15 @@ verify the served closed state before draining, and the expected upstream and
 served ready state before public checks. Activation requires a verified image
 and root access.
 
+On 2026-11-10, release `4480431` was activated, but its helper stopped after
+the temporary policy probe's deletion was not observed within its cleanup
+window. The probe was later absent; ingress was rechecked and the owned Service
+barrier was removed with UID/resource-version guards before public checks.
+For future boundary checks, prefer a bounded one-shot probe, normal deletion
+with a UID precondition, and observed deletion; retain both the probe and
+cleanup errors. Do not rerun a completed switch or restore an old database
+over accepted work to recover a paused admission barrier.
+
 The checked-in audio Deployment requests `128Mi`/`100m` and limits `1Gi`/`1`
 CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
 
