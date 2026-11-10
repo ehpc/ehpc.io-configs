@@ -15,16 +15,17 @@ certificate inspection and TLS diagnostics.
 
 Before any planned activation, record the current system generation, review
 all pending user changes and resource headroom, and choose a maintenance
-window: activation may restart services. The prepared auth configuration is
-**not activated**. Verify that the reviewed local build source includes all
-intended live-checkout changes and that `nixos/audio-deployment.yaml` has the
-approved release image and annotations. Never overwrite unrelated staged work.
+window: activation may restart services. The checked-in image is the desired
+pin, not proof of the currently running image. Verify that the reviewed local
+build source includes all intended live-checkout changes and that
+`nixos/audio-deployment.yaml` has the approved release image and annotations.
+Never overwrite unrelated staged work.
 The apply service reads common manifests from
 `/home/ehpc/ehpc.io-configs/k8s` at runtime, but the canonical audio Deployment
 and NetworkPolicy are captured from `nixos/audio-deployment.yaml` and
 `nixos/audio-network-policy.yaml` in the built Nix closure. Ensure the live
 common manifests and the built source match the reviewed release before
-activation. Take a fresh consistent SQLite backup before the auth cutover.
+activation. Take a fresh consistent SQLite backup before each audio cutover.
 
 Save the original live Deployment specification and immutable image pin as
 well as the database backup. A pre-auth Nix generation's apply unit does not
@@ -88,8 +89,8 @@ The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from
 `default/audio-modal-token`, and `OPENROUTER_API_KEY` from
 `default/audio-openrouter`. Invite-only access additionally requires independent
 `AUTH_OTP_SECRET` and `AUTH_INVITE_SECRET` values from `default/audio-auth`.
-The existing SOPS-encrypted `secrets.yaml` is the source of truth; the prepared
-configuration has not yet been activated or deployed.
+The existing SOPS-encrypted `secrets.yaml` is the source of truth; retain the
+installed keys across upgrades so existing accounts and sessions continue to work.
 
 Five encrypted top-level keys must exist: `modal-token-id`,
 `modal-token-secret`, `openrouter-api-key`, `audio-auth-otp-secret`, and
@@ -100,7 +101,7 @@ An authorized root operator can edit them privately using
 Never print credentials, commit plaintext or dummy values, or use developer
 credentials. Retain stable existing keys and back them up securely.
 
-The prepared apply service refuses missing/unreadable templates, short or equal
+The apply service refuses missing/unreadable templates, short or equal
 auth keys, and unavailable `audio-mail` group before applying audio resources.
 The apply service requires and starts after `audio-mail.socket`, so a failed
 mail socket prevents the auth workload from being applied. Upon activation the
@@ -110,11 +111,13 @@ Its renderer resolves the host's actual group ID and adds it to supplemental
 groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
 directory, not a socket inode. The gateway-only ingress NetworkPolicy must be
 enforced before trusting the observed gateway node subnet `10.42.0.0/24`.
-An isolated equivalent policy test allowed the gateway, denied a nonmatching
-pod and preserved kubelet readiness; it did not test the actual audio pod's
-policy or socket mount. Recheck subnet, labels, permissions, additive policies,
-gateway forwarding, kubelet probes and socket connectivity during the approved
-cutover. Production activation still requires a verified image and root access.
+The 2026-11-09 cutover checked gateway access, nonmatching-pod denial and a
+new-pod socket connection. Recheck subnet, labels, permissions, additive
+policies, gateway traffic, kubelet probes and socket connectivity for each
+cutover. EndpointSlice readiness alone does not prove NGINX has reconciled:
+verify the served closed state before draining, and the expected upstream and
+served ready state before public checks. Activation requires a verified image
+and root access.
 
 The checked-in audio Deployment requests `128Mi`/`100m` and limits `1Gi`/`1`
 CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
