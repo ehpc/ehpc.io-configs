@@ -20,6 +20,8 @@ pin, not proof of the currently running image. Verify that the reviewed local
 build source includes all intended live-checkout changes and that
 `nixos/audio-deployment.yaml` has the approved release image and annotations.
 Never overwrite unrelated staged work.
+The 2026-11-10 audio release `86c3f47` passed its complete CI workflow; the
+checked-in digest is the desired pin and is not itself proof of activation.
 The apply service reads common manifests from
 `/home/ehpc/ehpc.io-configs/k8s` at runtime, but the canonical audio Deployment
 and NetworkPolicy are captured from `nixos/audio-deployment.yaml` and
