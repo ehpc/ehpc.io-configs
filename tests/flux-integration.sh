@@ -10,7 +10,7 @@ readonly GIT_URL=http://git-http.git-fixture.svc.cluster.local:8080/audio.git
 readonly GIT_IMAGE=docker.io/library/node@sha256:63538dfe497cc29dfafdda25ada09b46db68a3f4cc205abf1f5d6bf0913f3384
 readonly IMAGE_A=registry.k8s.io/pause@sha256:ee6521f290b2168b6e0935a181d4cff9be1ac3f505666ef0e3c98fae8199917a
 readonly IMAGE_B=registry.k8s.io/pause@sha256:7031c1b283388d2c2e09b57badb803c05ebed362dc88d84b480cc47f72a21097
-readonly TEST_GID=4294967294
+readonly TEST_GID=2147483647
 readonly TEST_RELEASE_SHA=2222222222222222222222222222222222222222
 readonly SMOKE_DEADLINE=$((SECONDS + 17 * 60))
 
@@ -339,6 +339,19 @@ spec:
           image: $IMAGE_A
           imagePullPolicy: IfNotPresent
 YAML
+python3 - "$REPO/gitops/audio/deployment.yaml.precreated" "$WORK/invalid-gid.yaml" <<'PY'
+import sys
+from pathlib import Path
+import yaml
+obj = yaml.safe_load(Path(sys.argv[1]).read_text())
+obj["metadata"]["name"] = "invalid-gid-boundary"
+obj["spec"]["template"]["spec"]["securityContext"]["supplementalGroups"] = [2147483648]
+Path(sys.argv[2]).write_text(yaml.safe_dump(obj, sort_keys=False))
+PY
+if kubectl create --dry-run=server -f "$WORK/invalid-gid.yaml" >"$WORK/invalid-gid.log" 2>&1; then
+  fail 'Kubernetes accepted an out-of-range supplemental GID'
+fi
+grep -q 'supplementalGroups' "$WORK/invalid-gid.log" || { cat "$WORK/invalid-gid.log" >&2; fail 'GID boundary request failed for an unrelated reason'; }
 kubectl apply -f "$REPO/gitops/audio/deployment.yaml.precreated"
 
 readonly SECRET_UID="$(kubectl -n default get secret audio-auth -o jsonpath='{.metadata.uid}')"

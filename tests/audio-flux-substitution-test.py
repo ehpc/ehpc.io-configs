@@ -25,7 +25,7 @@ class SubstitutionTest(unittest.TestCase):
                               capture_output=True, text=True, env=env, timeout=10)
 
     def test_real_substitution_preserves_deployment_and_uses_integer_gid(self):
-        for gid in ('1', '777', '4294967294'):
+        for gid in ('1', '777', '2147483647'):
             result = self.substitute(gid)
             self.assertEqual(result.returncode, 0, result.stderr)
             rendered = yaml.safe_load(result.stdout)

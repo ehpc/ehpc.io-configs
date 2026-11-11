@@ -196,7 +196,7 @@ in
       IFS=: read -r audio_mail_name _ audio_mail_gid _ <<< "$audio_mail_group"
       [[ "$audio_mail_name" == audio-mail && "$audio_mail_gid" =~ ^[0-9]+$ && "$audio_mail_gid" != 0 && -d /run/audio-mail ]] \
         || { echo "[apply-k8s-manifests] Invalid audio-mail group or socket directory." >&2; exit 1; }
-      ${pkgs.python3}/bin/python3 -c 'import sys; n=int(sys.argv[1]); sys.exit(0 if 0 < n <= 4294967294 else 1)' "$audio_mail_gid" \
+      ${pkgs.python3}/bin/python3 -c 'import sys; n=int(sys.argv[1]); sys.exit(0 if 0 < n <= 2147483647 else 1)' "$audio_mail_gid" \
         || { echo "[apply-k8s-manifests] Audio mail group ID is out of range." >&2; exit 1; }
 
       echo KUBECONFIG=$KUBECONFIG
