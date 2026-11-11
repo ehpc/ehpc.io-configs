@@ -4,8 +4,8 @@ metadata:
   name: audio
   namespace: default
   annotations:
-    audio.ehpc.io/release-sha: "86c3f47e95f50a65894fd3c15b8489484509647a"
-    audio.ehpc.io/release-digest: sha256:83be24348a3dd4c376e8cfc44b4eda7ffc38924310942793bc9c1554f0b1c345
+    audio.ehpc.io/release-sha: "5ddf72208d5a660189eca9365ad73249fa42bc9c"
+    audio.ehpc.io/release-digest: sha256:9f33a58a7840712ce0eb559c8529b6e48cb400096d34f5f67c11ab63f5a74346
 spec:
   replicas: 1
   selector:
@@ -13,7 +13,7 @@ spec:
       app: audio
   # Recreate, not RollingUpdate: the single replica owns a ReadWriteOnce volume and
   # opens a SQLite db on it, so surging a second pod would give two writers the same
-  # file. Costs a few seconds of downtime per rollout.
+  # file. Draining can take up to the configured five-minute grace period.
   strategy:
     type: Recreate
   template:
@@ -39,7 +39,7 @@ spec:
             type: Directory
       containers:
         - name: audio
-          image: ghcr.io/ehpc/ehpc.io-audio@sha256:83be24348a3dd4c376e8cfc44b4eda7ffc38924310942793bc9c1554f0b1c345
+          image: ghcr.io/ehpc/ehpc.io-audio@sha256:9f33a58a7840712ce0eb559c8529b6e48cb400096d34f5f67c11ab63f5a74346
           imagePullPolicy: Always
           env:
             - name: MODAL_APP_NAME
@@ -102,9 +102,13 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 3
             failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["python", "-m", "backend.drain"]
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 5
