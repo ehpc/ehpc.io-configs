@@ -132,11 +132,17 @@ reviewed_config_commit=$(git -C /home/ehpc/ehpc.io-configs rev-parse HEAD)
 
 Confirm the source's observed generation is current and its artifact revision
 contains that exact commit, and verify the intended image/annotations and runtime
-GID. Only then resume `kustomization/audio`, verify its Ready condition, the new
-pod image and data preservation, and wait for both EndpointSlice and the served
-NGINX upstream before restoring admission. After the rollout is healthy, remove
-`spec.ref.commit` without replacing the GitRepository spec so `branch: main`
-resumes, then verify the observed source revision and Kustomization:
+GID. Only then resume `kustomization/audio`. While admission remains paused,
+verify Flux and the new pod are Ready, the image and existing data are preserved,
+and direct pod health and anonymous authorization checks pass. Mark that new work
+may be accepted before restoring only the owned Service selector. Then wait with
+a bounded deadline for the new pod's EndpointSlice target and served NGINX
+upstream, followed by public health and anonymous authorization checks.
+
+Before unfreezing, verify public config `main` still equals the reviewed commit;
+otherwise retain the commit pin and request operator review. Once the rollout is
+healthy and this check passes, remove `spec.ref.commit` without replacing the
+GitRepository spec so `branch: main` resumes, then verify its observed revision:
 
 ```sh
 "$k" -n flux-system patch gitrepository audio-config --type=merge \
@@ -149,8 +155,12 @@ and cannot guarantee completion of an unbounded external call. Recreate can
 make the application unavailable during that drain and replacement; this is not
 a zero-downtime rollout. Durable accepted call IDs resume after restart and
 uncertain dispatches fail closed rather than spawning duplicates. If bootstrap
-fails after resume, keep admission closed and follow a reviewed recovery; do not
-automatically activate an old Nix writer while Flux remains active.
+fails before admission is restored, keep it closed and follow a reviewed recovery.
+Once admission may have reopened, never automatically restore old data, an old
+image, or an old Nix writer. If unfreezing may have been requested but validation
+fails, the reviewed helper attempts a UID/resourceVersion-guarded Flux suspension
+only; an in-flight reconciliation may still finish and operator review is required.
+It does not automatically re-pin the source or roll back the deployment.
 
 The `Publish verified audio pin` workflow runs every five minutes or by manual
 dispatch. It changes only the SHA/digest annotations and immutable image after
