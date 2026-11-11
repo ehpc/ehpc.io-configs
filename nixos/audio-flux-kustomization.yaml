@@ -7,6 +7,26 @@ spec:
   interval: 1m
   timeout: 15m
   wait: true
+  # Flux's default Deployment reader lists ReplicaSets and Pods. Use the
+  # Deployment's own status so the reconciler needs no broader read access.
+  healthCheckExprs:
+    - apiVersion: apps/v1
+      kind: Deployment
+      inProgress: >-
+        !has(status.observedGeneration) || status.observedGeneration < metadata.generation
+      failed: >-
+        has(status.conditions) &&
+        status.conditions.exists(c,
+          (c.type == 'Progressing' && c.status == 'False' &&
+           has(c.reason) && c.reason == 'ProgressDeadlineExceeded') ||
+          (c.type == 'ReplicaFailure' && c.status == 'True'))
+      current: >-
+        has(spec.replicas) && spec.replicas > 0 &&
+        has(status.observedGeneration) && status.observedGeneration >= metadata.generation &&
+        has(status.replicas) && status.replicas == spec.replicas &&
+        has(status.updatedReplicas) && status.updatedReplicas == spec.replicas &&
+        has(status.readyReplicas) && status.readyReplicas == spec.replicas &&
+        has(status.availableReplicas) && status.availableReplicas == spec.replicas
   path: ./gitops/audio
   prune: false
   serviceAccountName: audio-reconciler

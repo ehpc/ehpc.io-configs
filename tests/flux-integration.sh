@@ -125,6 +125,37 @@ PY
   printf '%s' "$commit"
 }
 
+commit_fixture_probe_state() {
+  local state="$1" message="$2" commit
+  python3 - "$REPO/gitops/audio/deployment.yaml" "$state" <<'PY'
+import sys
+from pathlib import Path
+import yaml
+path, state = sys.argv[1:]
+obj = yaml.safe_load(Path(path).read_text())
+container = obj["spec"]["template"]["spec"]["containers"][0]
+if state == "unhealthy":
+    obj["spec"]["progressDeadlineSeconds"] = 10
+    container["readinessProbe"] = {
+        "tcpSocket": {"port": 1},
+        "periodSeconds": 2,
+        "timeoutSeconds": 1,
+        "failureThreshold": 1,
+    }
+elif state == "healthy":
+    obj["spec"].pop("progressDeadlineSeconds", None)
+    container.pop("readinessProbe", None)
+else:
+    raise SystemExit(f"unknown fixture probe state: {state}")
+Path(path).write_text(yaml.safe_dump(obj, sort_keys=False))
+PY
+  git -C "$REPO" add gitops/audio/deployment.yaml
+  git -C "$REPO" -c user.name='Flux integration fixture' -c user.email='flux-fixture@localhost' commit -m "$message" >/dev/null
+  commit="$(git -C "$REPO" rev-parse HEAD)"
+  run_bounded 60 git -C "$REPO" push http://127.0.0.1:38080/audio.git main >/dev/null
+  printf '%s' "$commit"
+}
+
 commit_fixture_path() {
   local mode="$1" message="$2" commit
   case "$mode" in
@@ -352,6 +383,17 @@ if kubectl create --dry-run=server -f "$WORK/invalid-gid.yaml" >"$WORK/invalid-g
   fail 'Kubernetes accepted an out-of-range supplemental GID'
 fi
 grep -q 'supplementalGroups' "$WORK/invalid-gid.log" || { cat "$WORK/invalid-gid.log" >&2; fail 'GID boundary request failed for an unrelated reason'; }
+kubectl create --dry-run=server -f "$REPO/gitops/audio/deployment.yaml.precreated" -o json >"$WORK/audio-deployment-dryrun.json"
+python3 - "$WORK/audio-deployment-dryrun.json" <<'PY'
+import json
+import sys
+obj = json.load(open(sys.argv[1], encoding="utf-8"))
+status = obj.get("status")
+assert isinstance(status, dict), obj
+for field in ("observedGeneration", "replicas", "readyReplicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"):
+    assert field not in status, status
+PY
+if kubectl -n default get deployment audio >/dev/null 2>&1; then fail 'server-side dry-run persisted the audio Deployment'; fi
 kubectl apply -f "$REPO/gitops/audio/deployment.yaml.precreated"
 
 readonly SECRET_UID="$(kubectl -n default get secret audio-auth -o jsonpath='{.metadata.uid}')"
@@ -464,6 +506,27 @@ wait_for_kustomization_create_denial() {
   kubectl -n flux-system get kustomization audio -o yaml >&2
   fail "removing the audio Deployment did not produce a current Forbidden result for request $token"
 }
+
+wait_for_kustomization_health_failure() {
+  local expected="$1" token generation deadline attempted ready observed handled
+  token="$(request_kustomization_reconcile)"
+  generation="$(kubectl -n flux-system get kustomization audio -o jsonpath='{.metadata.generation}')"
+  deadline="$(bounded_deadline "$((SECONDS + 120))")"
+  while (( SECONDS < deadline )); do
+    attempted="$(kubectl -n flux-system get kustomization audio -o jsonpath='{.status.lastAttemptedRevision}' 2>/dev/null || true)"
+    ready="$(kubectl -n flux-system get kustomization audio -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
+    observed="$(kubectl -n flux-system get kustomization audio -o jsonpath='{.status.observedGeneration}' 2>/dev/null || true)"
+    handled="$(kubectl -n flux-system get kustomization audio -o jsonpath='{.status.lastHandledReconcileAt}' 2>/dev/null || true)"
+    if [[ "$observed" == "$generation" && "$handled" == "$token" && "$attempted" == *"$expected"* && "$ready" == True ]]; then
+      fail "Kustomization reported Ready for unhealthy Git revision $expected"
+    fi
+    if [[ "$observed" == "$generation" && "$handled" == "$token" && "$attempted" == *"$expected"* && "$ready" == False ]]; then return 0; fi
+    sleep 1
+  done
+  kubectl -n flux-system get kustomization audio -o yaml >&2
+  kubectl -n default get deployment audio -o yaml >&2 || true
+  fail "Kustomization did not report a current health failure for Git revision $expected"
+}
 assert_audio_image() {
   local expected="$1" actual release_sha
   actual="$(kubectl -n default get deployment audio -o jsonpath='{.spec.template.spec.containers[0].image}')"
@@ -482,6 +545,45 @@ obj = json.loads(subprocess.check_output([
 groups = obj["spec"]["template"]["spec"]["securityContext"]["supplementalGroups"]
 expected = int(sys.argv[1])
 assert len(groups) == 1 and type(groups[0]) is int and groups[0] == expected, groups
+PY
+}
+
+assert_audio_progress_deadline_exceeded() {
+  python3 - <<'PY'
+import json
+import subprocess
+obj = json.loads(subprocess.check_output([
+    "kubectl", "-n", "default", "get", "deployment", "audio", "-o", "json"
+], text=True))
+spec = obj["spec"]
+assert spec["progressDeadlineSeconds"] == 10, spec
+assert spec["template"]["spec"]["containers"][0]["readinessProbe"]["tcpSocket"]["port"] == 1, spec
+status = obj.get("status", {})
+assert status.get("observedGeneration") == obj["metadata"]["generation"], status
+conditions = status.get("conditions", [])
+assert any(
+    condition.get("type") == "Progressing"
+    and condition.get("status") == "False"
+    and condition.get("reason") == "ProgressDeadlineExceeded"
+    for condition in conditions
+), conditions
+PY
+}
+
+assert_audio_generation_advanced_and_observed() {
+  python3 - "$1" <<'PY'
+import json
+import subprocess
+import sys
+obj = json.loads(subprocess.check_output([
+    "kubectl", "-n", "default", "get", "deployment", "audio", "-o", "json"
+], text=True))
+previous = int(sys.argv[1])
+generation = obj["metadata"]["generation"]
+status = obj.get("status", {})
+assert generation > previous, (previous, generation)
+assert status.get("observedGeneration") == generation, status
+assert status.get("readyReplicas", 0) >= 1, status
 PY
 }
 assert_subject_can_i() {
@@ -635,6 +737,25 @@ assert_audio_image "$IMAGE_A"
 assert_audio_gid
 [[ "$(kubectl -n default get deployment audio -o jsonpath='{.metadata.uid}')" == "$RECOVERED_AUDIO_UID" ]] || fail 'image rollback replaced the audio Deployment'
 
+UNHEALTHY_COMMIT="$(commit_fixture_probe_state unhealthy 'Make pause Deployment readiness fail briefly')"
+wait_for_gitrepository_revision "$UNHEALTHY_COMMIT"
+wait_for_kustomization_health_failure "$UNHEALTHY_COMMIT"
+assert_audio_progress_deadline_exceeded
+UNHEALTHY_DEPLOYMENT_GENERATION="$(kubectl -n default get deployment audio -o jsonpath='{.metadata.generation}')"
+[[ "$(kubectl -n default get deployment audio -o jsonpath='{.metadata.uid}')" == "$RECOVERED_AUDIO_UID" ]] || fail 'unhealthy rollout replaced the audio Deployment'
+assert_audio_image "$IMAGE_A"
+assert_audio_gid
+
+HEALTHY_COMMIT="$(commit_fixture_probe_state healthy 'Restore healthy pause Deployment readiness')"
+wait_for_gitrepository_revision "$HEALTHY_COMMIT"
+wait_for_kustomization_revision "$HEALTHY_COMMIT"
+run_bounded 120 kubectl -n default rollout status deployment/audio --timeout=120s
+assert_audio_generation_advanced_and_observed "$UNHEALTHY_DEPLOYMENT_GENERATION"
+[[ -z "$(kubectl -n default get deployment audio -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}')" ]] || fail 'healthy fixture retained the failing readiness probe'
+[[ "$(kubectl -n default get deployment audio -o jsonpath='{.metadata.uid}')" == "$RECOVERED_AUDIO_UID" ]] || fail 'healthy recovery replaced the audio Deployment'
+assert_audio_image "$IMAGE_A"
+assert_audio_gid
+
 before_uid="$(kubectl -n default get deployment audio -o jsonpath='{.metadata.uid}')"
 before_generation="$(kubectl -n default get deployment audio -o jsonpath='{.metadata.generation}')"
 before_image="$(kubectl -n default get deployment audio -o jsonpath='{.spec.template.spec.containers[0].image}')"
@@ -668,7 +789,7 @@ data:
   AUDIO_MAIL_GID: "$TEST_GID"
 YAML
 kubectl apply --server-side --field-manager=audio-runtime -f "$WORK/audio-runtime-restored.yaml"
-wait_for_kustomization_revision "$ROLLBACK_COMMIT"
+wait_for_kustomization_revision "$HEALTHY_COMMIT"
 run_bounded 120 kubectl -n default rollout status deployment/audio --timeout=120s
 assert_audio_image "$IMAGE_A"
 assert_audio_gid
@@ -693,4 +814,4 @@ assert_audio_image "$IMAGE_A"
 assert_audio_gid
 assert_protected_resources_unchanged
 assert_flux_inventory_is_scoped
-printf 'Flux integration passed: RBAC boundaries, SSA bootstrap handoff, pinned-source freeze, denied-create recovery, live prune=false behavior, image transition/rollback, strict typed GID substitution, and protected resources.\n'
+printf 'Flux integration passed: RBAC boundaries, SSA bootstrap handoff, pinned-source freeze, denied-create recovery, prune=false behavior, image transition/rollback, Deployment progress-deadline health failure/recovery, strict typed GID substitution, and protected resources.\n'

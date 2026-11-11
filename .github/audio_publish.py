@@ -24,7 +24,7 @@ REQUIRED_JOBS = {
 SHA = re.compile(r'^[0-9a-f]{40}$')
 DIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')
 PERSISTENCE_PATHS = {
-    'backend/db.py', 'backend/auth_store.py', 'backend/models.py',
+    'backend/db.py', 'backend/auth_store.py', 'backend/cache_catalog.py', 'backend/models.py',
     'backend/config.py', 'backend/session.py', 'backend/inference.py',
     'backend/modal_client.py', 'backend/queue.py', 'backend/song_search_worker.py',
     'backend/source_cache.py', 'backend/pitch_reference.py',

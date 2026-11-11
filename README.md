@@ -27,7 +27,10 @@ The apply service reads common manifests from
 secrets, Service, PVC and Flux bootstrap. Flux alone reconciles the Deployment
 from `gitops/audio/deployment.yaml`; Nix never reapplies that Deployment.
 Ensure the live common manifests and built source match the reviewed release
-before activation. Take a fresh consistent SQLite backup before each cutover.
+before activation. After draining, take fresh consistent SQLite online backups
+of `/data/jobs.db` and, if present, `/data/cache-catalog.sqlite` before each
+cutover. Preserve all non-database files separately; do not treat a live WAL
+archive as the canonical database backup or invent missing catalog metadata.
 
 Save the original live Deployment specification and immutable image pin as
 well as the database backup. A pre-auth Nix generation's apply unit does not
@@ -96,9 +99,17 @@ their bootstrap resources. Flux reads this public repository on `main`, and the
 `flux-system/audio` Kustomization applies only `gitops/audio/deployment.yaml`
 using the narrowly scoped `audio-reconciler` account. Pruning is disabled;
 Secrets, PVCs, Service and NetworkPolicy remain Nix-owned. The controller
-cannot create or delete the audio Deployment. If it is accidentally deleted,
-an authorized operator must restore the reviewed Deployment with its actual
-mail GID before reconciliation can resume; Flux will not recreate it.
+cannot create or delete the audio Deployment. Flux checks the Deployment
+rollout using its own generation and replica status via a native CEL health
+expression: the default health reader also lists ReplicaSets and Pods, which
+this account is deliberately not allowed to read. Deadline or replica failures
+fail the health check. Missing fields within a returned `status` object wait for
+the Deployment controller; if the API omits the entire root `status` binding,
+Flux reports a CEL evaluation error and does not mark the rollout Ready. A later
+valid status can be retried by normal reconciliation. If the Deployment is
+accidentally deleted, an authorized
+operator must restore the reviewed Deployment with its actual mail GID before
+reconciliation can resume; Flux will not recreate it.
 
 The first Nix activation creates the Kustomization **suspended** if absent.
 Nix does not own or reset its `suspend` field on later applies. Do not resume it

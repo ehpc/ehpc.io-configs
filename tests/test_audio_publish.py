@@ -100,7 +100,7 @@ class PublisherTest(unittest.TestCase):
             unrelated['files'] = [{'filename': name, 'status': 'modified'}]
             self.assertTrue(MODULE.safe_comparison(unrelated, OLD, NEW), name)
         bad = []
-        for name in ('backend/db.py', 'backend/auth_store.py', 'backend/models.py',
+        for name in ('backend/db.py', 'backend/auth_store.py', 'backend/cache_catalog.py', 'backend/models.py',
                      'separator/options.py', 'backend/migrations/new.py'):
             changed = copy.deepcopy(good)
             changed['files'] = [{'filename': name, 'status': 'modified'}]
