@@ -424,6 +424,10 @@ wait_for_kustomization_revision() {
     sleep 2
   done
   kubectl -n flux-system get kustomization audio -o yaml >&2
+  kubectl -n default get pods -l app=audio -o wide >&2 || true
+  kubectl -n default describe deployment audio >&2 || true
+  kubectl -n default describe pods -l app=audio >&2 || true
+  kubectl -n flux-system logs deployment/kustomize-controller --tail=100 >&2 || true
   fail "Kustomization did not handle request $token for generation $generation at Git revision $expected"
 }
 wait_for_strict_substitution_failure() {
