@@ -407,20 +407,16 @@ kubectl apply -f "$WORK/bootstrap-local.yaml"
 kubectl -n flux-system create configmap audio-runtime --from-literal="AUDIO_MAIL_GID=$TEST_GID" \
   --dry-run=client -o yaml | kubectl apply --server-side --field-manager=audio-runtime -f -
 run_bounded 180 kubectl -n flux-system wait --for=condition=Ready gitrepository/audio-config --timeout=180s
+readonly INITIAL_AUDIO_GITREPO_URL="$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.url}')"
+readonly INITIAL_AUDIO_GITREPO_INTERVAL="$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.interval}')"
 
-cat >"$WORK/freeze.yaml" <<YAML
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: audio-config
-  namespace: flux-system
-spec:
-  ref:
-    commit: $INITIAL_COMMIT
-YAML
-kubectl apply --server-side --field-manager=audio-operator-freeze -f "$WORK/freeze.yaml"
+kubectl -n flux-system patch gitrepository audio-config --type=merge \
+  --patch "{\"spec\":{\"ref\":{\"branch\":\"main\",\"commit\":\"$INITIAL_COMMIT\"}}}"
 kubectl apply -f "$WORK/bootstrap-local.yaml"
 [[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.ref.commit}')" == "$INITIAL_COMMIT" ]] || fail 'Nix client-side reapply removed the operator Git commit freeze'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.ref.branch}')" == main ]] || fail 'Git commit freeze changed the branch ref'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.url}')" == "$INITIAL_AUDIO_GITREPO_URL" ]] || fail 'Nix client-side reapply changed the GitRepository URL'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.interval}')" == "$INITIAL_AUDIO_GITREPO_INTERVAL" ]] || fail 'Nix client-side reapply changed the GitRepository interval'
 
 request_gitrepository_reconcile() {
   local token
@@ -710,18 +706,12 @@ assert_audio_image "$IMAGE_A"
 assert_audio_gid
 assert_flux_inventory_is_scoped
 
-cat >"$WORK/unfreeze.yaml" <<'YAML'
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: audio-config
-  namespace: flux-system
-spec:
-  ref:
-    branch: main
-YAML
-kubectl apply --server-side --field-manager=audio-operator-freeze -f "$WORK/unfreeze.yaml"
+kubectl -n flux-system patch gitrepository audio-config --type=merge \
+  --patch '{"spec":{"ref":{"commit":null}}}'
 [[ -z "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.ref.commit}')" ]] || fail 'operator unfreeze left the Git commit pin in place'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.ref.branch}')" == main ]] || fail 'operator unfreeze removed the branch ref'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.url}')" == "$INITIAL_AUDIO_GITREPO_URL" ]] || fail 'operator unfreeze changed the GitRepository URL'
+[[ "$(kubectl -n flux-system get gitrepository audio-config -o jsonpath='{.spec.interval}')" == "$INITIAL_AUDIO_GITREPO_INTERVAL" ]] || fail 'operator unfreeze changed the GitRepository interval'
 wait_for_gitrepository_revision "$TRANSITION_COMMIT"
 wait_for_kustomization_revision "$TRANSITION_COMMIT"
 run_bounded 120 kubectl -n default rollout status deployment/audio --timeout=120s

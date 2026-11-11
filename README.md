@@ -135,9 +135,15 @@ contains that exact commit, and verify the intended image/annotations and runtim
 GID. Only then resume `kustomization/audio`, verify its Ready condition, the new
 pod image and data preservation, and wait for both EndpointSlice and the served
 NGINX upstream before restoring admission. After the rollout is healthy, remove
-`spec.ref.commit` from `gitrepository/audio-config` so `branch: main` resumes;
-verify the observed source revision and Kustomization. Never restore an old
-database over newly accepted work. The new app's preStop drain is best-effort:
+`spec.ref.commit` without replacing the GitRepository spec so `branch: main`
+resumes, then verify the observed source revision and Kustomization:
+
+```sh
+"$k" -n flux-system patch gitrepository audio-config --type=merge \
+  -p '{"spec":{"ref":{"commit":null}}}'
+```
+
+Never restore an old database over newly accepted work. The new app's preStop drain is best-effort:
 the 300-second Kubernetes termination grace allows up to five minutes for drain
 and cannot guarantee completion of an unbounded external call. Recreate can
 make the application unavailable during that drain and replacement; this is not
