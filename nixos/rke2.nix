@@ -315,13 +315,14 @@ in
         ${pkgs.python3.withPackages (ps: [ ps.pyyaml ])}/bin/python3 -c \
           'import sys,yaml; d=yaml.safe_load(open(sys.argv[1])); d["spec"]["suspend"]=True; yaml.safe_dump(d,open(sys.argv[2],"w"),sort_keys=False)' \
           ${./audio-flux-kustomization.yaml} "$audio_tmp/suspended.yaml"
-        kubectl apply --server-side --field-manager=audio-bootstrap -f "$audio_tmp/suspended.yaml"
-        kubectl apply --server-side --field-manager=audio-nix -f ${./audio-flux-kustomization.yaml}
-        # Relinquish bootstrap ownership of all fields except the safety gate.
+        # Nix initially owns the complete object; a second manager co-owns
+        # only suspend so Nix can relinquish that field without clearing it.
+        kubectl apply --server-side --field-manager=audio-nix -f "$audio_tmp/suspended.yaml"
         printf '%s\n' 'apiVersion: kustomize.toolkit.fluxcd.io/v1' 'kind: Kustomization' \
           'metadata:' '  name: audio' '  namespace: flux-system' 'spec:' '  suspend: true' \
           > "$audio_tmp/gate.yaml"
         kubectl apply --server-side --field-manager=audio-bootstrap -f "$audio_tmp/gate.yaml"
+        kubectl apply --server-side --field-manager=audio-nix -f ${./audio-flux-kustomization.yaml}
       else
         kubectl apply --server-side --field-manager=audio-nix -f ${./audio-flux-kustomization.yaml}
       fi

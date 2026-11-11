@@ -525,8 +525,7 @@ obj = yaml.safe_load(Path(source).read_text())
 obj["spec"]["suspend"] = True
 Path(destination).write_text(yaml.safe_dump(obj, sort_keys=False))
 PY
-kubectl apply --server-side --field-manager=audio-bootstrap -f "$WORK/kustomization-suspended.yaml"
-kubectl apply --server-side --field-manager=audio-nix -f "$ROOT/nixos/audio-flux-kustomization.yaml"
+kubectl apply --server-side --field-manager=audio-nix -f "$WORK/kustomization-suspended.yaml"
 cat >"$WORK/suspend-only.yaml" <<'YAML'
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -537,6 +536,7 @@ spec:
   suspend: true
 YAML
 kubectl apply --server-side --field-manager=audio-bootstrap -f "$WORK/suspend-only.yaml"
+kubectl apply --server-side --field-manager=audio-nix -f "$ROOT/nixos/audio-flux-kustomization.yaml"
 [[ "$(kubectl -n flux-system get kustomization audio -o jsonpath='{.spec.suspend}')" == true ]] || fail 'first-boot Kustomization was not suspended'
 
 assert_can_i yes get deployments.apps/audio default
