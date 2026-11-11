@@ -484,7 +484,8 @@ assert_subject_can_i() {
   local expected="$1" subject="$2" verb="$3" resource="$4" namespace="${5:-}" actual
   local -a args=("$verb" "$resource" "--as=$subject")
   [[ -z "$namespace" ]] || args+=(-n "$namespace")
-  actual="$(kubectl auth can-i "${args[@]}" 2>&1 || true)"
+  actual="$(kubectl auth can-i "${args[@]}" 2>"$WORK/can-i.stderr" || true)"
+  [[ ! -s "$WORK/can-i.stderr" ]] || cat "$WORK/can-i.stderr" >&2
   [[ "$actual" == "$expected" ]] || fail "$subject can-i $verb $resource expected '$expected', got '$actual'"
 }
 assert_can_i() {
