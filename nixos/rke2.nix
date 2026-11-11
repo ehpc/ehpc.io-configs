@@ -176,7 +176,7 @@ in
       User = "root";
       Environment = [
         "KUBECONFIG=${kubeconfig}"
-        "PATH=${pkgs.kubectl}/bin:${pkgs.git}/bin:/run/current-system/sw/bin"
+        "PATH=/var/lib/rancher/rke2/bin:${pkgs.git}/bin:/run/current-system/sw/bin"
       ];
     };
 
@@ -196,6 +196,8 @@ in
       IFS=: read -r audio_mail_name _ audio_mail_gid _ <<< "$audio_mail_group"
       [[ "$audio_mail_name" == audio-mail && "$audio_mail_gid" =~ ^[0-9]+$ && "$audio_mail_gid" != 0 && -d /run/audio-mail ]] \
         || { echo "[apply-k8s-manifests] Invalid audio-mail group or socket directory." >&2; exit 1; }
+      ${pkgs.python3}/bin/python3 -c 'import sys; n=int(sys.argv[1]); sys.exit(0 if 0 < n <= 4294967294 else 1)' "$audio_mail_gid" \
+        || { echo "[apply-k8s-manifests] Audio mail group ID is out of range." >&2; exit 1; }
 
       echo KUBECONFIG=$KUBECONFIG
 
@@ -276,12 +278,10 @@ in
       echo "[apply-k8s-manifests] Applying 110-dns-01-test"
       kubectl apply -f 110-dns-01-test
 
-      # Resolve the host's dynamically allocated mail group for this apply only.
-      # Preserve fsGroup and any existing supplemental groups.
+      # Flux receives the real host group through a Nix-owned ConfigMap. Its
+      # workload Kustomization is created suspended on first bootstrap only.
       audio_tmp=$(${pkgs.coreutils}/bin/mktemp -d)
       trap '${pkgs.coreutils}/bin/rm -rf "$audio_tmp"' EXIT
-      ${pkgs.python3.withPackages (ps: [ ps.pyyaml ])}/bin/python3 ${./audio-render.py} \
-        ${./audio-deployment.yaml} "$audio_tmp/deployment.yaml" "$audio_mail_gid"
 
       # Apply the ingress restriction before the app can trust forwarded IPs.
       # Enforcement must also be verified as a separate rollout prerequisite.
@@ -298,8 +298,33 @@ in
 
       echo "[apply-k8s-manifests] Applying 120-audio common resources"
       kubectl apply -f 120-audio
-      echo "[apply-k8s-manifests] Applying audio Deployment with runtime mail group"
-      kubectl apply -f "$audio_tmp/deployment.yaml"
+
+      echo "[apply-k8s-manifests] Installing pinned scoped Flux controllers"
+      kubectl apply --server-side --field-manager=audio-flux-components -f ${./flux-components.yaml}
+      kubectl wait --for=condition=Established crd/gitrepositories.source.toolkit.fluxcd.io --timeout=120s
+      kubectl wait --for=condition=Established crd/kustomizations.kustomize.toolkit.fluxcd.io --timeout=120s
+      kubectl apply -f ${./audio-flux-bootstrap.yaml}
+      kubectl -n flux-system create configmap audio-runtime \
+        --from-literal="AUDIO_MAIL_GID=$audio_mail_gid" --dry-run=client -o yaml \
+        | kubectl apply --server-side --field-manager=audio-runtime -f -
+
+      # Never re-suspend a Kustomization that an operator has safely resumed.
+      # A separate manager creates the one-time safety gate; Nix SSA omits it.
+      audio_flux_existing=$(kubectl -n flux-system get kustomization audio --ignore-not-found -o name)
+      if [[ -z "$audio_flux_existing" ]]; then
+        ${pkgs.python3.withPackages (ps: [ ps.pyyaml ])}/bin/python3 -c \
+          'import sys,yaml; d=yaml.safe_load(open(sys.argv[1])); d["spec"]["suspend"]=True; yaml.safe_dump(d,open(sys.argv[2],"w"),sort_keys=False)' \
+          ${./audio-flux-kustomization.yaml} "$audio_tmp/suspended.yaml"
+        kubectl apply --server-side --field-manager=audio-bootstrap -f "$audio_tmp/suspended.yaml"
+        kubectl apply --server-side --field-manager=audio-nix -f ${./audio-flux-kustomization.yaml}
+        # Relinquish bootstrap ownership of all fields except the safety gate.
+        printf '%s\n' 'apiVersion: kustomize.toolkit.fluxcd.io/v1' 'kind: Kustomization' \
+          'metadata:' '  name: audio' '  namespace: flux-system' 'spec:' '  suspend: true' \
+          > "$audio_tmp/gate.yaml"
+        kubectl apply --server-side --field-manager=audio-bootstrap -f "$audio_tmp/gate.yaml"
+      else
+        kubectl apply --server-side --field-manager=audio-nix -f ${./audio-flux-kustomization.yaml}
+      fi
 
       echo "[apply-k8s-manifests] Done"
     '';

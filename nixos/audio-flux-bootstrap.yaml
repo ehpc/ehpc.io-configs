@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audio-reconciler
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: audio-deployment-reconciler
+  namespace: default
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [audio]
+    verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: audio-deployment-reconciler
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: audio-deployment-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: audio-reconciler
+    namespace: flux-system
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: audio-config
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/ehpc/ehpc.io-configs.git
+  ref:
+    branch: main

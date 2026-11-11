@@ -4,7 +4,7 @@ metadata:
   name: audio
   namespace: default
   annotations:
-    audio.ehpc.io/release-sha: 86c3f47e95f50a65894fd3c15b8489484509647a
+    audio.ehpc.io/release-sha: "86c3f47e95f50a65894fd3c15b8489484509647a"
     audio.ehpc.io/release-digest: sha256:83be24348a3dd4c376e8cfc44b4eda7ffc38924310942793bc9c1554f0b1c345
 spec:
   replicas: 1
@@ -26,6 +26,8 @@ spec:
       # group-writable by it.
       securityContext:
         fsGroup: 1000
+        supplementalGroups:
+          - ${AUDIO_MAIL_GID}
       volumes:
         - name: data
           persistentVolumeClaim:

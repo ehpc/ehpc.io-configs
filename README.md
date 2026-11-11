@@ -18,16 +18,16 @@ all pending user changes and resource headroom, and choose a maintenance
 window: activation may restart services. The checked-in image is the desired
 pin, not proof of the currently running image. Verify that the reviewed local
 build source includes all intended live-checkout changes and that
-`nixos/audio-deployment.yaml` has the approved release image and annotations.
+`gitops/audio/deployment.yaml` has the approved release image and annotations.
 Never overwrite unrelated staged work.
 The 2026-11-10 audio release `86c3f47` passed its complete CI workflow; the
 checked-in digest is the desired pin and is not itself proof of activation.
 The apply service reads common manifests from
-`/home/ehpc/ehpc.io-configs/k8s` at runtime, but the canonical audio Deployment
-and NetworkPolicy are captured from `nixos/audio-deployment.yaml` and
-`nixos/audio-network-policy.yaml` in the built Nix closure. Ensure the live
-common manifests and the built source match the reviewed release before
-activation. Take a fresh consistent SQLite backup before each audio cutover.
+`/home/ehpc/ehpc.io-configs/k8s` at runtime and owns the audio NetworkPolicy,
+secrets, Service, PVC and Flux bootstrap. Flux alone reconciles the Deployment
+from `gitops/audio/deployment.yaml`; Nix never reapplies that Deployment.
+Ensure the live common manifests and built source match the reviewed release
+before activation. Take a fresh consistent SQLite backup before each cutover.
 
 Save the original live Deployment specification and immutable image pin as
 well as the database backup. A pre-auth Nix generation's apply unit does not
@@ -36,8 +36,12 @@ apply` without prune retains existing Secrets and NetworkPolicies. Recovery
 requires a separately reviewed Kubernetes rollback or forward fix; do not
 assume a Nix generation switch reverses the application. If an old anonymous
 image is ever restored, keep public access closed. Never restore an old
-database over newly accepted work. Later Nix generations contain the Deployment
-in their closures; explicitly rerun the apply unit after an approved rollback.
+database over newly accepted work. After Flux ownership begins, the Deployment
+comes from Git, not a Nix closure. A pre-Flux generation may contain its own
+Deployment writer and can conflict with Flux or revert the image. Suspend Flux
+and the publisher, safely drain, and independently review that generation
+before any host rollback; never treat a Nix rollback as an application rollback.
+Follow the reviewed GitOps rollback procedure below.
 
 Build on a development workstation or CI, never on the 4 GiB VPS. From the
 reviewed configuration checkout, limit build concurrency, then copy the actual
@@ -85,6 +89,73 @@ unlocked key in the agent; subsequent connections using that agent do not prompt
 A new agent session requires unlocking again. Start coding agents from that same
 shell so they can use the cached key.
 
+## Audio GitOps and first ownership transfer
+
+Nix installs digest-pinned Flux 2.9.6 source and kustomize controllers and owns
+their bootstrap resources. Flux reads this public repository on `main`, and the
+`flux-system/audio` Kustomization applies only `gitops/audio/deployment.yaml`
+using the narrowly scoped `audio-reconciler` account. Pruning is disabled;
+Secrets, PVCs, Service and NetworkPolicy remain Nix-owned. The controller
+cannot create or delete the audio Deployment. If it is accidentally deleted,
+an authorized operator must restore the reviewed Deployment with its actual
+mail GID before reconciliation can resume; Flux will not recreate it.
+
+The first Nix activation creates the Kustomization **suspended** if absent.
+Nix does not own or reset its `suspend` field on later applies. Do not resume it
+against the old application: first verify a full-CI-tested image containing
+`python -m backend.drain` and `/ready`, take fresh consistent SQLite and file
+backups, pause admissions, and drain existing jobs, searches and inference using
+the reviewed operator procedure. Save the live Deployment, Service and PVC
+identities. The current legacy workload has no reliable Flux preStop drain.
+
+Before resuming, pin the GitRepository to the exact reviewed config commit so a
+concurrent publisher cannot change the candidate during the handoff. With the
+matching RKE2 client and an explicitly reviewed commit, for example:
+
+```sh
+k=/var/lib/rancher/rke2/bin/kubectl
+reviewed_config_commit=$(git -C /home/ehpc/ehpc.io-configs rev-parse HEAD)
+"$k" -n flux-system patch gitrepository audio-config --type=merge \
+  -p "{\"spec\":{\"ref\":{\"branch\":\"main\",\"commit\":\"$reviewed_config_commit\"}}}"
+```
+
+Confirm the source's observed generation is current and its artifact revision
+contains that exact commit, and verify the intended image/annotations and runtime
+GID. Only then resume `kustomization/audio`, verify its Ready condition, the new
+pod image and data preservation, and wait for both EndpointSlice and the served
+NGINX upstream before restoring admission. After the rollout is healthy, remove
+`spec.ref.commit` from `gitrepository/audio-config` so `branch: main` resumes;
+verify the observed source revision and Kustomization. Never restore an old
+database over newly accepted work. The new app's preStop drain is best-effort:
+the 300-second Kubernetes termination grace allows up to five minutes for drain
+and cannot guarantee completion of an unbounded external call. Recreate can
+make the application unavailable during that drain and replacement; this is not
+a zero-downtime rollout. Durable accepted call IDs resume after restart and
+uncertain dispatches fail closed rather than spawning duplicates. If bootstrap
+fails after resume, keep admission closed and follow a reviewed recovery; do not
+automatically activate an old Nix writer while Flux remains active.
+
+The `Publish verified audio pin` workflow runs every five minutes or by manual
+dispatch. It changes only the SHA/digest annotations and immutable image after
+current app `main` has a successful trusted six-job release run, validates the
+registry digest, and refuses non-descendant updates. Automatic publication also
+fails closed for persistence/migration-sensitive source changes or an incomplete
+GitHub comparison. This path-based conservative gate can require manual review
+even for a change that does not actually migrate data. Review the changes and
+take a fresh backup before manually committing their verified image pin; later
+compatible releases can advance automatically. Playback-only and cache producer
+version changes do not by themselves trigger this review. GitHub schedules may
+be delayed or dropped, and schedules in
+public repositories can be disabled after
+60 days of inactivity; use manual dispatch or re-enable the workflow if needed.
+For a deliberate rollback, first set the repository Actions variable
+`AUDIO_PUBLISH_PAUSED` to `true` and suspend `kustomization/audio`, then perform
+an independently reviewed Git rollback and safe admission/drain procedure.
+Resume only when ready: a running publisher will otherwise re-advance the pin.
+The config workflow's own `GITHUB_TOKEN` writes only this repository; no
+cross-repository Git credential is needed. A token-generated push does not
+start another workflow, so the publisher validates its own pin update.
+
 ## Audio credentials
 
 The audio server obtains `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from
@@ -109,8 +180,9 @@ The apply service requires and starts after `audio-mail.socket`, so a failed
 mail socket prevents the auth workload from being applied. Upon activation the
 RKE2 kubeconfig is configured as `0640` rather than world-readable; `ehpc`
 retains operator access through its membership in the `kube` group.
-Its renderer resolves the host's actual group ID and adds it to supplemental
-groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
+The apply service resolves the host's actual group ID into the Nix-owned
+`flux-system/audio-runtime` ConfigMap; Flux substitutes it as an integer in
+supplemental groups without changing fsGroup. The pod mounts `/run/audio-mail` as a read-only
 directory, not a socket inode. The gateway-only ingress NetworkPolicy must be
 enforced before trusting the observed gateway node subnet `10.42.0.0/24`.
 The 2026-11-09 cutover checked gateway access, nonmatching-pod denial and a
@@ -136,8 +208,10 @@ CPU. Preserve the route-scoped `64m` client-settings policy when changing it.
 ## Outbound authentication mail
 
 The NixOS mail configuration in `nixos/mail.nix` is active. On 2026-11-09,
-Postfix, OpenDKIM, and `audio-mail.socket` were observed active. The application
-adapter and invite-only access are implemented and tested locally, not deployed.
+Postfix, OpenDKIM, and `audio-mail.socket` were observed active. Invite-only
+access and the application adapter were deployed with release `4480431`; its
+public guest API returned 401 after activation. The desired image pin and Flux
+configuration above do not by themselves establish a later deployment.
 
 The sender is `no-reply@auth.ehpc.io`, the envelope sender is
 `bounce@auth.ehpc.io`, the signing domain is `auth.ehpc.io`, and the outbound
@@ -191,16 +265,12 @@ for the mail module, including socket access and DKIM signing. Run
 `nix build "path:$PWD#checks.x86_64-linux.mail"` only on a development machine or CI,
 never on the production VPS. It is not a production delivery test.
 
-Before any future system change, record the current generation as above. For a
-rollback, select the appropriate recorded prior generation and activate it; the
-pre-mail generation 242 is historical, not a universal rollback target:
-
-```sh
-sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
-printf 'Recorded previous generation to restore: '; read -r generation
-sudo nix-env --profile /nix/var/nix/profiles/system --switch-generation "$generation" &&
-  sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch
-```
+Before any future system change, record the current generation. List available
+generations with `sudo nix-env --profile /nix/var/nix/profiles/system
+--list-generations`; the pre-mail generation 242 is historical, not a universal
+rollback target. Before selecting one, suspend the publisher and Flux, safely
+drain, and independently review its application ownership and the recovery plan
+as described above. Never automatically restore an old database over newer work.
 
 ## Coding agents
 

@@ -1,0 +1,27 @@
+name: Publish verified audio pin
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audio-pin-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Validate trusted app CI and advance immutable pin
+        env:
+          AUDIO_PUBLISH_PAUSED: ${{ vars.AUDIO_PUBLISH_PAUSED }}
+        run: python3 .github/audio_publish.py
