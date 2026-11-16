@@ -4,8 +4,8 @@ metadata:
   name: audio
   namespace: default
   annotations:
-    audio.ehpc.io/release-sha: "e669d71667e2d392c6895d5c635b16dee85719a3"
-    audio.ehpc.io/release-digest: sha256:a7baf7a625b7825911f53ccec354826533a297ebbc28ba5c3810f4ecd4585e85
+    audio.ehpc.io/release-sha: "b89ebe6544f0ec186b58ebe40b6513a9712ca728"
+    audio.ehpc.io/release-digest: sha256:f552d6ea89def82cd49aa1155460f145ce697bc70050e274872c0ac6c41647ed
 spec:
   replicas: 1
   selector:
@@ -39,7 +39,7 @@ spec:
             type: Directory
       containers:
         - name: audio
-          image: ghcr.io/ehpc/ehpc.io-audio@sha256:a7baf7a625b7825911f53ccec354826533a297ebbc28ba5c3810f4ecd4585e85
+          image: ghcr.io/ehpc/ehpc.io-audio@sha256:f552d6ea89def82cd49aa1155460f145ce697bc70050e274872c0ac6c41647ed
           imagePullPolicy: Always
           env:
             - name: MODAL_APP_NAME
