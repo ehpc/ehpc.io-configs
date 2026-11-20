@@ -28,6 +28,7 @@ PERSISTENCE_PATHS = {
     'backend/config.py', 'backend/session.py', 'backend/inference.py',
     'backend/modal_client.py', 'backend/queue.py', 'backend/song_search_worker.py',
     'backend/source_cache.py', 'backend/pitch_reference.py',
+    'backend/routes/learning_progress.py', 'backend/source_identity.py',
     'separator/options.py', 'separator/lyrics.py', 'separator/lyrics_reference.py',
     'separator/pitch.py', 'separator/processing.py', 'separator/inference_transport.py',
 }

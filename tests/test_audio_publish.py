@@ -133,6 +133,18 @@ class PublisherTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 MODULE.safe_comparison(item, OLD, NEW)
 
+    def test_learning_progress_changes_and_renames_require_review(self):
+        for path in ('backend/routes/learning_progress.py', 'backend/source_identity.py'):
+            for entry in (
+                {'filename': path, 'status': 'modified'},
+                {'filename': 'backend/renamed.py', 'previous_filename': path, 'status': 'renamed'},
+            ):
+                with self.subTest(path=path, status=entry['status']):
+                    comparison = {'status': 'ahead', 'total_commits': 1, 'base_commit': {'sha': OLD},
+                                  'commits': [{'sha': NEW}], 'files': [entry]}
+                    with self.assertRaisesRegex(ValueError, 'requires manual review and backup'):
+                        MODULE.safe_comparison(comparison, OLD, NEW)
+
     def test_real_git_publication_advances_only_validated_pin(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

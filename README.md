@@ -174,7 +174,9 @@ dispatch. It changes only the SHA/digest annotations and immutable image after
 current app `main` has a successful trusted six-job release run, validates the
 registry digest, and refuses non-descendant updates. Automatic publication also
 fails closed for persistence/migration-sensitive source changes or an incomplete
-GitHub comparison. This path-based conservative gate can require manual review
+GitHub comparison. Learning-progress routes and source-identity interpretation
+are protected because they govern persisted private practice data. This
+path-based conservative gate can require manual review
 even for a change that does not actually migrate data. Review the changes and
 take a fresh backup before manually committing their verified image pin; later
 compatible releases can advance automatically. Playback-only and cache producer
