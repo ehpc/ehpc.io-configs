@@ -156,6 +156,13 @@ make the application unavailable during that drain and replacement; this is not
 a zero-downtime rollout. Durable accepted call IDs resume after restart and
 uncertain dispatches fail closed rather than spawning duplicates. If bootstrap
 fails before admission is restored, keep it closed and follow a reviewed recovery.
+
+On 2026-11-20, draining the old audio pod before updating Git left a running
+Flux health check waiting on that now-unready old Deployment for its 15-minute
+timeout, delaying the new revision. Coordinate any pre-drain with the exact
+reviewed Flux source revision and confirm that prior reconciliation has ended;
+a suspension request alone does not prove an in-flight reconciliation stopped.
+
 Once admission may have reopened, never automatically restore old data, an old
 image, or an old Nix writer. If unfreezing may have been requested but validation
 fails, the reviewed helper attempts a UID/resourceVersion-guarded Flux suspension
