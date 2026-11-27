@@ -32,6 +32,24 @@ of `/data/jobs.db` and, if present, `/data/cache-catalog.sqlite` before each
 cutover. Preserve all non-database files separately; do not treat a live WAL
 archive as the canonical database backup or invent missing catalog metadata.
 
+Plan backup placement and image-pull headroom against the live kubelet
+`evictionHard` and `evictionMinimumReclaim` settings for both node and image
+filesystems, as well as image garbage-collection thresholds and expected
+unpacked image size. The backup helper's one-GiB free-space margin proves only
+that its backup fits; it does not guarantee that Kubernetes can schedule the
+replacement. On 2026-11-27, a local backup archive and image pull preceded
+ephemeral-storage pressure and an evicted audio pod.
+
+Prefer a private, verified off-node backup before pulling the replacement image.
+If relocating an existing backup, compare source and destination hashes for the
+receipt, both available database snapshots, inventories, deployment pin and all
+archive bytes; fsync the copied files and directory, atomically publish the copy,
+and fsync its parent. Record a durable private relocation receipt identifying
+both hosts, paths and hashes before any approved removal of the exact owned local
+archive. Retain the original receipt, snapshots and inventories, never remove
+PVC data, and allow kubelet pressure and scheduling to recover normally rather
+than bypassing its taints.
+
 Save the original live Deployment specification and immutable image pin as
 well as the database backup. A pre-auth Nix generation's apply unit does not
 restore the Deployment after its legacy manifest was moved, and `kubectl
